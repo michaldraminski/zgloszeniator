@@ -6,7 +6,7 @@ Lokalna aplikacja internetowa do przygotowywania zgłoszeń na zawody pływackie
 
 [Otwórz LENEX Entries w GitHub Pages](https://michaldraminski.github.io/zgloszeniator/)
 
-**Uwaga:** to docelowy adres, ale strona obecnie zwraca 404 — GitHub Pages nie zostało jeszcze włączone dla repozytorium, a pierwsze wdrożenie zakończyło się błędem konfiguracji. Właściciel repozytorium musi w [ustawieniach Pages](https://github.com/michaldraminski/zgloszeniator/settings/pages) wybrać **Build and deployment → Source → GitHub Actions**, a następnie ponowić nieudany workflow. Po udanym wdrożeniu powyższy link otworzy aplikację.
+Strona jest publikowana z gałęzi `main` przez GitHub Actions. Aplikację można otworzyć bez instalowania programu; dane zgłoszeń pozostają lokalnie w przeglądarce.
 
 Projekt jest w trakcie rozwoju. Przed użyciem plików na prawdziwych zawodach zapoznaj się z uwagami o zgodności poniżej.
 
