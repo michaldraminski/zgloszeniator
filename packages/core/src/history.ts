@@ -2,8 +2,8 @@ import { identityKey } from './lenex';
 import type { Course, IncomingAthlete, ParsedLenexDocument } from './lenex';
 
 export type ImportedTimeSource =
-  | { kind: 'entry'; meetName: string }
-  | { kind: 'result'; meetName: string };
+  | { kind: 'entry'; meetName: string; meetDate?: string; documentOrder: number }
+  | { kind: 'result'; meetName: string; meetDate?: string; documentOrder: number };
 
 export interface ImportedTimeObservation {
   athleteKey: string;
@@ -32,7 +32,7 @@ export function collectImportedHistory(
     return key;
   }
 
-  for (const document of documents) {
+  for (const [documentOrder, document] of documents.entries()) {
     if (document.kind === 'entry') {
       for (const club of document.entryFile.clubs) {
         for (const parsedAthlete of club.athletes) {
@@ -53,7 +53,14 @@ export function collectImportedHistory(
               disciplineKey: entry.disciplineKey,
               course: document.entryFile.meet.course,
               timeCs: entry.timeCs,
-              source: { kind: 'entry', meetName: document.entryFile.meet.name },
+              source: {
+                kind: 'entry',
+                meetName: document.entryFile.meet.name,
+                ...(document.entryFile.meet.meetDate
+                  ? { meetDate: document.entryFile.meet.meetDate }
+                  : {}),
+                documentOrder,
+              },
             });
           }
         }
@@ -72,11 +79,59 @@ export function collectImportedHistory(
           disciplineKey: result.disciplineKey,
           course: result.course,
           timeCs: result.timeCs,
-          source: { kind: 'result', meetName: document.results.meet.name },
+          source: {
+            kind: 'result',
+            meetName: document.results.meet.name,
+            ...(document.results.meet.meetDate ? { meetDate: document.results.meet.meetDate } : {}),
+            documentOrder,
+          },
         });
       }
     }
   }
 
   return { athletes: [...athletesByKey.values()], observations };
+}
+
+function isIsoDate(value: string | undefined): value is string {
+  return value !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function compareRecency(
+  left: ImportedTimeObservation,
+  right: ImportedTimeObservation,
+): number {
+  const leftDate = isIsoDate(left.source.meetDate) ? left.source.meetDate : undefined;
+  const rightDate = isIsoDate(right.source.meetDate) ? right.source.meetDate : undefined;
+  if (leftDate && rightDate && leftDate !== rightDate) {
+    return rightDate.localeCompare(leftDate);
+  }
+  if (left.source.documentOrder !== right.source.documentOrder) {
+    return right.source.documentOrder - left.source.documentOrder;
+  }
+  return left.timeCs - right.timeCs;
+}
+
+export function suggestImportedTime(
+  history: ImportedHistory,
+  athleteKey: string,
+  disciplineKey: string,
+  course: Course,
+): ImportedTimeObservation | undefined {
+  const matching = history.observations.filter(
+    (observation) =>
+      observation.athleteKey === athleteKey &&
+      observation.disciplineKey === disciplineKey &&
+      observation.course === course,
+  );
+
+  for (const kind of ['result', 'entry'] as const) {
+    const preferred = matching
+      .filter((observation) => observation.source.kind === kind)
+      .sort(compareRecency)[0];
+    if (preferred) {
+      return preferred;
+    }
+  }
+  return undefined;
 }

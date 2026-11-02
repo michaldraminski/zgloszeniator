@@ -7,6 +7,11 @@ import {
   parseResults,
   collectImportedHistory,
   identityKey,
+  suggestImportedTime,
+  ageAt,
+  buildAthleteEventOptions,
+  resolveEvent,
+  UnsupportedAgeDateType,
 } from '../src/index';
 
 const invitationXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -185,6 +190,56 @@ describe('LENEX parsers', () => {
       'result',
     ]);
     expect(history.observations.map((observation) => observation.timeCs)).toEqual([3125, 3080]);
+  });
+
+  it('prefers the newest result, then falls back to the latest previous entry', () => {
+    const previousEntryXml = entryXml
+      .replace('name="Synthetic Meet" course="SCM"', 'name="Synthetic Meet" course="SCM" date="2026-11-01"');
+    const olderResultXml = resultsXml
+      .replace('name="Synthetic Meet" course="SCM" status="OFFICIAL"', 'name="Synthetic Meet" course="SCM" date="2026-10-01" status="OFFICIAL"')
+      .replace('swimtime="00:00:30.80"', 'swimtime="00:00:20.00"');
+    const newestResultXml = resultsXml
+      .replace('name="Synthetic Meet" course="SCM" status="OFFICIAL"', 'name="Synthetic Meet" course="SCM" date="2026-10-20" status="OFFICIAL"')
+      .replace('swimtime="00:00:30.80"', 'swimtime="00:00:29.50"');
+    const history = collectImportedHistory([
+      parseLenexDocument(previousEntryXml),
+      parseLenexDocument(olderResultXml),
+      parseLenexDocument(newestResultXml),
+    ]);
+    const key = identityKey({ firstName: 'Swimmer', lastName: 'Example', birthYear: 2012, gender: 'F' });
+
+    expect(suggestImportedTime(history, key, '50m SF', 'SCM')).toMatchObject({
+      timeCs: 2950,
+      source: { kind: 'result', meetDate: '2026-10-20' },
+    });
+  });
+
+  it('builds age-eligible individual event choices with suggested history times', () => {
+    const meet = parseInvitation(invitationXml);
+    const history = collectImportedHistory([
+      parseLenexDocument(entryXml),
+      parseLenexDocument(resultsXml),
+    ]);
+    const options = buildAthleteEventOptions(meet, history);
+
+    expect(ageAt(meet, 2012)).toBe(14);
+    expect(options).toHaveLength(1);
+    expect(options[0].events).toHaveLength(1);
+    expect(options[0].events[0]).toMatchObject({
+      event: { eventId: 'event-1', disciplineKey: '50m SF' },
+      suggestedTime: {
+        timeCs: 3080,
+        source: { kind: 'result' },
+      },
+    });
+    expect(resolveEvent(meet, 'F', '50m SF', 14)?.eventId).toBe('event-1');
+    expect(resolveEvent(meet, 'F', '50m SF', 30)).toBeUndefined();
+  });
+
+  it('rejects unsupported age-date types when resolving athlete eligibility', () => {
+    const meet = { ...parseInvitation(invitationXml), ageDate: { type: 'AGE', value: '2026' } };
+
+    expect(() => ageAt(meet, 2012)).toThrow(UnsupportedAgeDateType);
   });
 
   it('normalizes athlete identity with Unicode NFC, whitespace, and case folding', () => {

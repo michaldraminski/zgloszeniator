@@ -20,6 +20,7 @@ export interface Meet {
   key: string;
   name: string;
   course: Course;
+  meetDate?: string;
   deadline?: string;
   maxEntriesPerAthlete?: number;
   ageDate?: { type: string; value: string };
@@ -289,10 +290,12 @@ function parseMeet(xml: string, meetRecord: XmlRecord, requireAgeDate = true): M
   }
 
   const maxEntries = attr(meetRecord, 'maxentriesathlete');
+  const meetDate = attr(meetRecord, 'date');
   return {
     key: name,
     name,
     course: parseCourse(attr(meetRecord, 'course')),
+    ...(meetDate ? { meetDate } : {}),
     ...(attr(meetRecord, 'deadline') ? { deadline: attr(meetRecord, 'deadline') } : {}),
     ...(maxEntries !== undefined
       ? { maxEntriesPerAthlete: integerAttr(meetRecord, 'maxentriesathlete', 'MEET') }
