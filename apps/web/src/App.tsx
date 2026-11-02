@@ -330,7 +330,7 @@ export default function App() {
         setInvitationState({ kind: 'error', fileName: file.name, reason: 'wrong-type' });
         return;
       }
-      setSelectedAthleteKeys([]);
+      setSelectedAthleteKeys(localAthletes.map((athlete) => identityKey(athlete)));
       setSelectedEventIds({});
       setEditedTimes({});
       setGeneratedDownload(null);
