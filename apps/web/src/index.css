@@ -250,6 +250,16 @@ ul {
   font: inherit;
 }
 
+.relay-age-warning {
+  margin: 0.25rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #fcd34d;
+  border-radius: 0.5rem;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.86rem;
+}
+
 .relay-list button {
   min-height: 2rem;
   border-color: #cbd5e1;

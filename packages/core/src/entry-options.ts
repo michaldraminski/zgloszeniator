@@ -22,6 +22,32 @@ export interface AthleteEntryOptions {
   events: AthleteEventOption[];
 }
 
+export interface RelayAgeWarning {
+  athlete: IncomingAthlete;
+  age: number;
+  reason: 'adult-in-junior' | 'over-category-limit';
+}
+
+export function getRelayAgeWarnings(
+  meet: Meet,
+  categoryName: string,
+  ageMax: number | undefined,
+  members: readonly IncomingAthlete[],
+): RelayAgeWarning[] {
+  const isJuniorCategory = /junior|młod/i.test(categoryName.normalize('NFC'));
+  return members.flatMap((athlete) => {
+    const age = ageAt(meet, athlete.birthYear);
+    const warnings: RelayAgeWarning[] = [];
+    if (isJuniorCategory && age >= 18) {
+      warnings.push({ athlete, age, reason: 'adult-in-junior' });
+    }
+    if (ageMax !== undefined && ageMax >= 0 && age > ageMax) {
+      warnings.push({ athlete, age, reason: 'over-category-limit' });
+    }
+    return warnings;
+  });
+}
+
 export function getRelayMemberOptions(
   athletes: readonly IncomingAthlete[],
   selectedAthleteKeys: ReadonlySet<string>,

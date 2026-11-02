@@ -53,6 +53,10 @@ export const pl = {
     invalidTime: 'Wpisz czas w formacie gg:mm:ss.cc.',
     categoryRequired: 'Wpisz nazwę kategorii lub zespołu.',
     unknownMember: 'Nie udało się odnaleźć zawodnika przypisanego do sztafety. Wybierz go ponownie z listy.',
+    adultInJuniorWarning: (firstName: string, lastName: string, age: number) =>
+      `Ostrzeżenie: ${firstName} ${lastName} ma ${age} lat — osoba 18+ w sztafecie juniorskiej.`,
+    overAgeWarning: (firstName: string, lastName: string, age: number) =>
+      `Ostrzeżenie: ${firstName} ${lastName} ma ${age} lat, powyżej limitu kategorii.`,
     listHeading: 'Dodane sztafety',
   },
   fileImport: {

@@ -11,6 +11,7 @@ import {
   ageAt,
   buildAthleteEventOptions,
   getRelayMemberOptions,
+  getRelayAgeWarnings,
   resolveEvent,
   UnsupportedAgeDateType,
 } from '../src/index';
@@ -403,5 +404,18 @@ describe('LENEX parsers', () => {
 
     expect(getRelayMemberOptions(roster, selected, 'F')).toEqual([female]);
     expect(getRelayMemberOptions(roster, selected, 'X')).toEqual([female, male]);
+  });
+
+  it('warns for adults in junior relays and members above a stated category limit', () => {
+    const meet = parseInvitation(invitationXml);
+    const adult = { firstName: 'Alex', lastName: 'Example', birthYear: 2008, gender: 'M' as const };
+    const juniorWarning = getRelayAgeWarnings(meet, 'KAT. Junior', undefined, [adult]);
+    expect(juniorWarning).toMatchObject([{ age: 18, reason: 'adult-in-junior' }]);
+
+    const ageCapWarning = getRelayAgeWarnings(meet, 'KAT. Open', 17, [adult]);
+    expect(ageCapWarning).toMatchObject([{ age: 18, reason: 'over-category-limit' }]);
+    expect(getRelayAgeWarnings(meet, 'KAT. Junior', undefined, [
+      { ...adult, birthYear: 2010 },
+    ])).toEqual([]);
   });
 });

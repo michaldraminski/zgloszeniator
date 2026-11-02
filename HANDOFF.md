@@ -124,6 +124,7 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 - blocking: no event matches the athlete's gender and age for the chosen discipline,
 - blocking: duplicate discipline for one athlete, invalid time format,
 - warning: missing time, deadline passed, athlete without any entry, roster athlete born outside any age group.
+- warning: an assigned relay member is 18+ in a junior-named category, or is above the relay age group's explicit maximum; warning does not block export.
 
 ---
 

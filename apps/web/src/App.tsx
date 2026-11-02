@@ -4,6 +4,7 @@ import {
   buildEntryFile,
   buildAthleteEventOptions,
   getRelayMemberOptions,
+  getRelayAgeWarnings,
   ageAt,
   collectImportedHistory,
   formatTime,
@@ -933,6 +934,18 @@ export default function App() {
                       const event = invitationState.kind === 'loaded'
                         ? invitationState.meet.events.find((item) => item.eventId === relay.eventId)
                         : undefined;
+                      const relayMembers = row.memberAthleteKeys
+                        .filter((athleteKey): athleteKey is string => athleteKey !== null)
+                        .map((athleteKey) => rosterByKey.get(athleteKey))
+                        .filter((athlete): athlete is IncomingAthlete => athlete !== undefined);
+                      const ageWarnings = invitationState.kind === 'loaded'
+                        ? getRelayAgeWarnings(
+                            invitationState.meet,
+                            relay.name,
+                            relay.ageMax,
+                            relayMembers,
+                          )
+                        : [];
                       return (
                         <li key={key}>
                           <div className="relay-row-content">
@@ -988,6 +1001,15 @@ export default function App() {
                                   );
                                 })}
                               </div>
+                            )}
+                            {ageWarnings.length > 0 && (
+                              <p className="relay-age-warning" role="status">
+                                {ageWarnings.map((warning) =>
+                                  warning.reason === 'adult-in-junior'
+                                    ? pl.relay.adultInJuniorWarning(warning.athlete.firstName, warning.athlete.lastName, warning.age)
+                                    : pl.relay.overAgeWarning(warning.athlete.firstName, warning.athlete.lastName, warning.age),
+                                ).join(' ')}
+                              </p>
                             )}
                           </div>
                           <button type="button" onClick={() => removeRelay(key)}>{pl.relay.remove}</button>
