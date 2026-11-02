@@ -297,6 +297,7 @@ UX principles: keyboard-first matrix (arrows, space to toggle, type to edit time
    - Our approach (inject `CLUBS` into the invitation, keep unknown attributes, write 2.0 / cp1250 by default, optionally allow 3.0 / UTF-8 when the organizer confirms compatibility) is small enough to keep in-house.
 9. GitHub Pages serves a project site under `/<repo-name>/`. Set Vite `base` from an env variable (`/` for a custom domain). Avoid client-side routes that need server fallback: use hash routing or a single view with state.
 10. Historical time priority: choose a matching result before any previous-entry time; among results, prefer the latest ISO `MEET@date`. If either date is missing or dates are equal, later import order is the tie-breaker. Confirm that organizers consistently provide `MEET@date` before relying on date ordering for all files.
+11. The Olecko results export omits `SWIMSTYLE@name`. Recover its discipline labels only from a prior entry with the same non-empty city, course, and complete unique `(session, event number, gender, relay count)` schedule. If no unique compatible label inventory exists, keep those results unresolved rather than guessing.
 
 ---
 
