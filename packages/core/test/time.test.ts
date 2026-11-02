@@ -28,6 +28,10 @@ describe('time utilities', () => {
     expect(bytes.length).toBeGreaterThan(0);
   });
 
+  it('uses a replacement byte for characters outside Windows-1250', () => {
+    expect(decodeWindows1250(encodeWindows1250('A😀B'))).toBe('A?B');
+  });
+
   it('defaults to the safer LENEX 2.0 output and accepts the override', () => {
     expect(DEFAULT_OUTPUT_FORMAT).toBe('lenex2-windows1250');
     expect(normalizeOutputFormat(undefined)).toBe(DEFAULT_OUTPUT_FORMAT);
