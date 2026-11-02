@@ -1,41 +1,47 @@
 # LENEX Entries
 
-A local-first web app for preparing swimming and finswimming meet entries. Import an organizer's LENEX invitation, reuse athletes and times from previous entry/results files, select starts, and download a club entry file.
+Lokalna aplikacja internetowa do przygotowywania zgłoszeń na zawody pływackie i w pływaniu w płetwach. Wczytaj zaproszenie LENEX, wykorzystaj zawodników i czasy z wcześniejszych zgłoszeń lub wyników, wybierz starty i pobierz plik zgłoszenia klubu.
 
-The interface is in Polish. The project is a work in progress; review the compatibility notes below before using generated files for a real meet.
+## Aplikacja online
 
-## Features
+[Otwórz LENEX Entries w GitHub Pages](https://michaldraminski.github.io/zgloszeniator/)
 
-- Import `.lef` files and ZIP-based `.lxf` files.
-- Read previous entries and valid results as athlete/time history.
-- Suggest event times and allow coach-friendly manual time input.
-- Add relay teams and optionally assign selected athletes to relay positions.
-- Export a LENEX 2.0 / Windows-1250 `.lxf` file.
-- Autosave the current draft in browser IndexedDB, download a versioned JSON backup, and restore a validated backup.
-- Optionally ask the browser to protect local storage from automatic eviction.
+**Uwaga:** to docelowy adres, ale strona obecnie zwraca 404 — GitHub Pages nie zostało jeszcze włączone dla repozytorium, a pierwsze wdrożenie zakończyło się błędem konfiguracji. Właściciel repozytorium musi w [ustawieniach Pages](https://github.com/michaldraminski/zgloszeniator/settings/pages) wybrać **Build and deployment → Source → GitHub Actions**, a następnie ponowić nieudany workflow. Po udanym wdrożeniu powyższy link otworzy aplikację.
 
-## Privacy and data safety
+Projekt jest w trakcie rozwoju. Przed użyciem plików na prawdziwych zawodach zapoznaj się z uwagami o zgodności poniżej.
 
-Files are parsed in the browser. The app has no backend, accounts, analytics, or code that sends athlete data to a service. Drafts are stored in the browser on the current device and browser profile; they are not synchronized to other devices.
+## Funkcje
 
-Browser storage may still be cleared or evicted. Download JSON backups regularly and keep them somewhere secure. A backup contains the imported meet and history data, roster additions, contact details, and draft selections. Do not share it publicly.
+- Wczytywanie plików `.lef` oraz archiwów `.lxf`.
+- Import wcześniejszych zgłoszeń i ważnych wyników jako historii zawodników i czasów.
+- Podpowiadanie czasów oraz ich ręczna, wygodna edycja.
+- Dodawanie sztafet i opcjonalne przypisywanie zawodników do zmian.
+- Eksport pliku `.lxf` w formacie LENEX 2.0 / Windows-1250.
+- Automatyczny zapis bieżącego zgłoszenia w pamięci przeglądarki IndexedDB.
+- Opcjonalny eksport i przywracanie kopii JSON w zwijanej sekcji ustawień zaawansowanych.
 
-Only use files that you are authorized to process. Real meet files contain personal information and must not be added to this public repository. Use the synthetic fixtures for development and tests.
+## Prywatność i bezpieczeństwo danych
 
-## Run locally
+Pliki są przetwarzane w przeglądarce. Aplikacja nie ma serwera, kont, analityki ani mechanizmu wysyłania danych zawodników do usługi. Zgłoszenie jest zapisywane w przeglądarce na bieżącym urządzeniu i profilu — nie synchronizuje się automatycznie z innymi urządzeniami.
 
-Requirements: Node.js with Corepack enabled.
+Przeglądarka może usunąć swoje dane. Kopia JSON zawiera zaproszenie, historię, ręcznie dodanych zawodników, dane kontaktowe i wybory zgłoszenia. Traktuj ją jak plik zawierający dane osobowe i nie udostępniaj publicznie.
 
-From the repository root:
+Przetwarzaj wyłącznie pliki, do których masz upoważnienie. Prawdziwe pliki zawodów mogą zawierać dane osobowe i nie wolno dodawać ich do tego publicznego repozytorium. Do programowania i testów używaj wyłącznie syntetycznych przykładów.
+
+## Uruchomienie lokalne
+
+Wymagania: Node.js z włączonym Corepack.
+
+W katalogu głównym repozytorium uruchom:
 
 ```powershell
 corepack pnpm install
 corepack pnpm --filter @lenex-entries/web dev
 ```
 
-Open the local URL printed by Vite (by default `http://localhost:5173`).
+Otwórz adres wyświetlony przez Vite (domyślnie `http://localhost:5173`).
 
-## Development checks
+## Sprawdzenia deweloperskie
 
 ```powershell
 corepack pnpm -r run lint
@@ -44,13 +50,13 @@ corepack pnpm -r run test
 corepack pnpm -r run build
 ```
 
-The workspace contains `apps/web` (React + Vite) and `packages/core` (strict TypeScript parsing, domain rules, and LENEX generation). Core code is kept independent of browser APIs.
+Monorepo zawiera `apps/web` (React + Vite) oraz `packages/core` (parsowanie LENEX, reguły domenowe i generowanie zgłoszeń w ścisłym TypeScript). Pakiet core nie korzysta z API przeglądarki.
 
-## Compatibility notes
+## Uwagi o zgodności
 
-- The default export format is LENEX 2.0 encoded as Windows-1250, matching the Splash-produced entry examples currently used by the project.
-- Always test a generated submission with the organizer's version of Splash Meet Manager before relying on it for a meet.
-- Optional relay-member assignments are written as LENEX `RELAYPOSITIONS`; Splash startlists with assigned relay members have been observed by the project owner.
-- Offline/PWA installation and a permanent shared roster are not implemented yet. Browser autosave is for the current draft; JSON backup is the portable copy.
+- Domyślny eksport to LENEX 2.0 kodowany jako Windows-1250, zgodnie z przykładami plików Splash używanymi w projekcie.
+- Przed użyciem zgłoszenia na zawodach sprawdź wygenerowany plik w wersji Splash Meet Manager używanej przez organizatora.
+- Przypisania zawodników do sztafet są zapisywane w LENEX jako `RELAYPOSITIONS`. Właściciel projektu widział listy startowe Splash z przypisanymi zawodnikami sztafet.
+- Tryb offline/PWA i stały, współdzielony katalog zawodników nie są jeszcze dostępne. Autosave zachowuje bieżące zgłoszenie w danej przeglądarce; kopia JSON służy do przenoszenia danych.
 
-See [HANDOFF.md](HANDOFF.md) for verified LENEX facts, project decisions, current milestones, and open compatibility questions.
+Zobacz [HANDOFF.md](HANDOFF.md), aby poznać potwierdzone fakty o LENEX, decyzje projektowe, etapy prac i otwarte kwestie zgodności.

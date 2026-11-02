@@ -3,6 +3,14 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/core/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
