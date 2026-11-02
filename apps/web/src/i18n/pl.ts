@@ -39,7 +39,7 @@ export const pl = {
   },
   relay: {
     heading: 'Sztafety',
-    optionalMembersNote: 'Możesz dodać sztafetę bez przypisywania zawodników. Składy sztafet nie są obecnie zapisywane w pliku.',
+    optionalMembersNote: 'Skład sztafety jest opcjonalny. Zawodników możesz przypisać po dodaniu zespołu; niewypełnione pozycje nie blokują eksportu.',
     noRelayEvents: 'To zaproszenie nie zawiera konkurencji sztafetowych.',
     event: 'Konkurencja i kategoria',
     category: 'Nazwa kategorii / zespołu',
@@ -47,8 +47,12 @@ export const pl = {
     time: 'Czas zgłoszenia',
     add: 'Dodaj sztafetę',
     remove: 'Usuń',
+    assignMembers: 'Przypisz zawodników do pozycji',
+    position: 'Zmiana',
+    noMember: 'Nie przypisano zawodnika',
     invalidTime: 'Wpisz czas w formacie gg:mm:ss.cc.',
     categoryRequired: 'Wpisz nazwę kategorii lub zespołu.',
+    unknownMember: 'Nie udało się odnaleźć zawodnika przypisanego do sztafety. Wybierz go ponownie z listy.',
     listHeading: 'Dodane sztafety',
   },
   fileImport: {

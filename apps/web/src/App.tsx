@@ -22,6 +22,7 @@ import {
 
 import { pl } from './i18n/pl';
 import { filterAthletes } from './roster';
+import { relayMemberKeys, setRelayMemberAtPosition, toggleRelayMemberAssignment } from './relay-draft';
 
 type InvitationImportState =
   | { kind: 'idle' }
@@ -62,6 +63,8 @@ interface RelayChoice {
 interface RelayDraftRow {
   key: string;
   relay: EntryDraftRelay;
+  assignMembers: boolean;
+  memberAthleteKeys: Array<string | null>;
 }
 
 async function parseFile(file: File): Promise<ParsedLenexDocument> {
@@ -286,7 +289,15 @@ export default function App() {
       ...(selectedRelayChoice.ageMin !== undefined ? { ageMin: selectedRelayChoice.ageMin } : {}),
       ...(selectedRelayChoice.ageMax !== undefined ? { ageMax: selectedRelayChoice.ageMax } : {}),
     };
-    setRelayDrafts((current) => [...current, { key: globalThis.crypto.randomUUID(), relay }]);
+    setRelayDrafts((current) => [
+      ...current,
+      {
+        key: globalThis.crypto.randomUUID(),
+        relay,
+        assignMembers: false,
+        memberAthleteKeys: [],
+      },
+    ]);
     setGenerationError('');
     setGenerationDiagnostic('');
     setGeneratedDownload(null);
@@ -295,6 +306,34 @@ export default function App() {
 
   function removeRelay(relayKey: string): void {
     setRelayDrafts((current) => current.filter((row) => row.key !== relayKey));
+    setGeneratedDownload(null);
+  }
+
+  function setRelayMemberAssignment(relayKey: string, enabled: boolean): void {
+    setRelayDrafts((current) => current.map((row) => {
+      if (row.key !== relayKey) {
+        return row;
+      }
+      const event = invitationState.kind === 'loaded'
+        ? invitationState.meet.events.find((candidate) => candidate.eventId === row.relay.eventId)
+        : undefined;
+      return {
+        ...row,
+        ...toggleRelayMemberAssignment(row, enabled, event?.relayCount ?? 0),
+      };
+    }));
+    setGeneratedDownload(null);
+  }
+
+  function setRelayMember(relayKey: string, position: number, athleteKey: string): void {
+    setRelayDrafts((current) => current.map((row) => {
+      if (row.key !== relayKey) {
+        return row;
+      }
+      return { ...row, ...setRelayMemberAtPosition(row, position, athleteKey) };
+    }));
+    setGenerationError('');
+    setGenerationDiagnostic('');
     setGeneratedDownload(null);
   }
 
@@ -339,6 +378,26 @@ export default function App() {
     }
 
     try {
+      const relays = relayDrafts.map(({ relay, memberAthleteKeys }) => ({
+        ...relay,
+        memberAthleteKeys: relayMemberKeys({ assignMembers: true, memberAthleteKeys }),
+      }));
+      const includedAthleteKeys = new Set(athletes.map((athlete) => identityKey(athlete)));
+      for (const relay of relays) {
+        for (const memberKey of relay.memberAthleteKeys ?? []) {
+          if (includedAthleteKeys.has(memberKey)) {
+            continue;
+          }
+          const member = rosterByKey.get(memberKey);
+          if (!member) {
+            setGenerationError(pl.relay.unknownMember);
+            return;
+          }
+          athletes.push({ ...member, entries: [] });
+          includedAthleteKeys.add(memberKey);
+        }
+      }
+
       const bytes = buildEntryFile(invitationState.meet, {
         club: {
           name: clubDetails.name,
@@ -349,7 +408,7 @@ export default function App() {
           },
         },
         athletes,
-        relays: relayDrafts.map(({ relay }) => relay),
+        relays,
       });
       const buffer = bytes.slice().buffer as ArrayBuffer;
       const blob = new Blob([buffer], { type: 'application/zip' });
@@ -859,13 +918,67 @@ export default function App() {
                 </div>
                 {relayDrafts.length > 0 && (
                   <ul className="relay-list">
-                    {relayDrafts.map(({ key, relay }) => {
+                    {relayDrafts.map((row) => {
+                      const { key, relay } = row;
                       const choice = relayChoices.find((item) => item.eventId === relay.eventId);
+                      const event = invitationState.kind === 'loaded'
+                        ? invitationState.meet.events.find((item) => item.eventId === relay.eventId)
+                        : undefined;
                       return (
                         <li key={key}>
-                          <span>
-                            {choice?.eventNumber}. {choice?.disciplineKey} · {relay.name} · {formatTime(relay.timeCs)}
-                          </span>
+                          <div className="relay-row-content">
+                            <strong>
+                              {choice?.eventNumber}. {choice?.disciplineKey} · {relay.name} · {formatTime(relay.timeCs)}
+                            </strong>
+                            <label className="relay-members-toggle">
+                              <input
+                                type="checkbox"
+                                checked={row.assignMembers}
+                                onChange={(event) => setRelayMemberAssignment(key, event.target.checked)}
+                              />
+                              <span>{pl.relay.assignMembers}</span>
+                            </label>
+                            {row.assignMembers && (
+                              <div className="relay-member-slots">
+                                {Array.from({ length: event?.relayCount ?? 0 }, (_, position) => {
+                                  const currentKey = row.memberAthleteKeys[position] ?? '';
+                                  const previousPositionEmpty = position > 0 &&
+                                    !row.memberAthleteKeys[position - 1];
+                                  const relayGender = choice?.gender ?? 'X';
+                                  const compatibleAthletes = rosterAthletes.filter(
+                                    (athlete) => relayGender === 'X' || athlete.gender === relayGender,
+                                  );
+                                  const usedElsewhere = new Set(
+                                    row.memberAthleteKeys.filter((value, index) => index !== position && value),
+                                  );
+                                  return (
+                                    <label key={position}>
+                                      <span>{pl.relay.position} {position + 1}</span>
+                                      <select
+                                        value={currentKey}
+                                        disabled={previousPositionEmpty || compatibleAthletes.length === 0}
+                                        onChange={(change) => setRelayMember(key, position, change.target.value)}
+                                      >
+                                        <option value="">{pl.relay.noMember}</option>
+                                        {compatibleAthletes.map((athlete) => {
+                                          const athleteKey = identityKey(athlete);
+                                          return (
+                                            <option
+                                              key={athleteKey}
+                                              value={athleteKey}
+                                              disabled={usedElsewhere.has(athleteKey)}
+                                            >
+                                              {athlete.lastName}, {athlete.firstName}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                           <button type="button" onClick={() => removeRelay(key)}>{pl.relay.remove}</button>
                         </li>
                       );
