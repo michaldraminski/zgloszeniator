@@ -122,7 +122,6 @@ function validateDraft(meet: Meet, draft: EntryFileDraft): void {
     }
   }
 
-  const relayNumbers = new Set<string>();
   for (const relay of relays) {
     if (!relay.name.trim()) {
       throw new EntryFileGenerationError('Relay name/category is required');
@@ -156,11 +155,6 @@ function validateDraft(meet: Meet, draft: EntryFileDraft): void {
     ) {
       throw new EntryFileGenerationError('Relay age minimum exceeds maximum');
     }
-    const numberKey = `${relay.eventId}\u0000${relay.number}`;
-    if (relayNumbers.has(numberKey)) {
-      throw new EntryFileGenerationError('Duplicate relay number');
-    }
-    relayNumbers.add(numberKey);
   }
 }
 
