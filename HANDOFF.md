@@ -245,7 +245,7 @@ Golden test = **semantic** equality (canonical XML: sorted attributes, trimmed w
 5. **Eksport**: club contact fields, validation panel (blocking vs warnings), download `.lxf`.
 6. **Ustawienia**: time policy, backup export/import, "persist storage" request.
 
-UX principles: keyboard-first matrix (arrows, space to toggle, type to edit time), no modal chains, undo for destructive actions, everything works offline.
+UX principles: the app provides a sticky four-step navigation for import, roster, entries, and export. Continue toward a keyboard-first matrix (arrows, space to toggle, type to edit time), no modal chains, undo for destructive actions, and offline operation.
 
 ---
 

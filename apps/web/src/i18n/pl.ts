@@ -2,6 +2,17 @@ export const pl = {
   title: 'Lenex Entries',
   appDescription:
     'Narzędzie do obsługi list startowych, historii wyników i eksportu zgłoszeń LENEX w trybie lokalnym.',
+  workflow: {
+    eyebrow: 'Lokalny asystent zgłoszeń pływackich',
+    label: 'Etapy przygotowania zgłoszenia',
+    localBadge: 'Dane pozostają na tym urządzeniu',
+    invitation: 'Zaproszenie i import',
+    roster: 'Zawodnicy',
+    entries: 'Konkurencje i sztafety',
+    export: 'Kontrola i eksport',
+    ready: 'Gotowe',
+    pending: 'Do uzupełnienia',
+  },
   sections: {
     roster: 'Zawodnicy',
     import: 'Import',

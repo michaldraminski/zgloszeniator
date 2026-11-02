@@ -609,6 +609,19 @@ export default function App() {
     }
   }
 
+  const hasMeet = invitationState.kind === 'loaded';
+  const workflowSteps = [
+    { href: '#import-section', title: pl.workflow.invitation, ready: hasMeet, available: true },
+    { href: '#roster-section', title: pl.workflow.roster, ready: rosterAthletes.length > 0, available: hasMeet },
+    { href: '#entries-section', title: pl.workflow.entries, ready: totalSelectedEntryCount > 0, available: hasMeet },
+    {
+      href: '#export-section',
+      title: pl.workflow.export,
+      ready: generatedDownload !== null,
+      available: hasMeet,
+    },
+  ];
+
   async function loadInvitation(file: File): Promise<void> {
     setInvitationState({ kind: 'loading', fileName: file.name });
 
@@ -667,11 +680,36 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <p className="eyebrow">Lenex Entries</p>
-        <h1>{pl.title}</h1>
+        <div>
+          <p className="eyebrow">{pl.workflow.eyebrow}</p>
+          <h1>{pl.title}</h1>
+          <p className="header-description">{pl.appDescription}</p>
+        </div>
+        <span className="local-badge">{pl.workflow.localBadge}</span>
       </header>
 
-      <section className="panel">
+      <nav className="workflow-nav" aria-label={pl.workflow.label}>
+        {workflowSteps.map((step, index) => (
+          <a
+            className={`workflow-step${step.ready ? ' workflow-step-ready' : ''}${step.available ? '' : ' workflow-step-disabled'}`}
+            href={step.href}
+            aria-disabled={!step.available}
+            key={step.href}
+            onClick={(event) => {
+              if (!step.available) event.preventDefault();
+            }}
+          >
+            <span className="workflow-step-number">{String(index + 1).padStart(2, '0')}</span>
+            <span className="workflow-step-copy">
+              <strong>{step.title}</strong>
+              <small>{step.ready ? pl.workflow.ready : pl.workflow.pending}</small>
+            </span>
+            <span className="workflow-step-mark" aria-hidden="true">{step.ready ? '✓' : '·'}</span>
+          </a>
+        ))}
+      </nav>
+
+      <section className="panel" id="import-section">
         <h2>{pl.sections.import}</h2>
         <h3>{pl.fileImport.invitationHeading}</h3>
         <p>{pl.fileImport.invitationHint}</p>
@@ -847,7 +885,7 @@ export default function App() {
       </section>
 
       {invitationState.kind === 'loaded' && (
-        <section className="panel roster-panel">
+        <section className="panel roster-panel" id="roster-section">
           <h2>{pl.sections.roster}</h2>
           <p>{pl.roster.description}</p>
           <form className="athlete-form" onSubmit={addAthlete}>
@@ -900,7 +938,7 @@ export default function App() {
       )}
 
       {invitationState.kind === 'loaded' && (
-        <section className="panel entry-planner">
+        <section className="panel entry-planner" id="entries-section">
           <div className="entry-planner-header">
             <div>
               <h2>{pl.fileImport.selectionHeading}</h2>
@@ -1212,7 +1250,7 @@ export default function App() {
             )}
           </section>
 
-          <div className="export-panel">
+          <div className="export-panel" id="export-section">
             <h3>{pl.export.heading}</h3>
             <p>{pl.export.help}</p>
             <div className="club-details-form">
