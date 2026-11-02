@@ -4,6 +4,7 @@ import {
   buildAthleteEventOptions,
   collectImportedHistory,
   formatTime,
+  identityKey,
   parseTime,
   parseLenexDocument,
   readLenexFile,
@@ -100,26 +101,28 @@ export default function App() {
   const [historicalFiles, setHistoricalFiles] = useState<HistoricalFile[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [rejectedHistoryFiles, setRejectedHistoryFiles] = useState<RejectedHistoryFile[]>([]);
+  const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
+  const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
+  const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
   const importedHistory = collectImportedHistory(
     historicalFiles.map(({ document }) => document),
     historicalFiles.map(({ fileName }) => fileName),
   );
-  const entryOptions =
+  const selectedEntryOptions =
     invitationState.kind === 'loaded'
-      ? buildAthleteEventOptions(invitationState.meet, importedHistory)
+      ? buildAthleteEventOptions(
+          invitationState.meet,
+          importedHistory,
+          new Set(selectedAthleteKeys),
+        )
       : [];
-  const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
-  const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
-  const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
   const entryObservationCount = importedHistory.observations.filter(
     (item) => item.source.kind === 'entry',
   ).length;
   const resultObservationCount = importedHistory.observations.filter(
     (item) => item.source.kind === 'result',
   ).length;
-  const selectedAthletes = entryOptions.filter((option) =>
-    selectedAthleteKeys.includes(option.athleteKey),
-  );
+  const selectedAthletes = selectedEntryOptions;
   const selectedEntryCount = selectedAthletes.reduce(
     (count, athlete) =>
       count +
@@ -372,14 +375,16 @@ export default function App() {
             </p>
           </div>
 
-          {entryOptions.length === 0 ? (
+          {importedHistory.athletes.length === 0 ? (
             <p>{pl.fileImport.noAthletes}</p>
           ) : (
             <>
               <div className="selection-actions">
                 <button
                   type="button"
-                  onClick={() => setSelectedAthleteKeys(entryOptions.map((option) => option.athleteKey))}
+                  onClick={() =>
+                    setSelectedAthleteKeys(importedHistory.athletes.map((athlete) => identityKey(athlete)))
+                  }
                 >
                   {pl.fileImport.selectAllAthletes}
                 </button>
@@ -390,25 +395,35 @@ export default function App() {
 
               <div className="entry-planner-grid">
                 <div className="athlete-list" aria-label={pl.fileImport.athleteListLabel}>
-                  {entryOptions.map((athlete) => (
-                    <label className="athlete-choice" key={athlete.athleteKey}>
+                  {importedHistory.athletes.map((athlete) => {
+                    const athleteKey = identityKey(athlete);
+                    return (
+                    <label className="athlete-choice" key={athleteKey}>
                       <input
                         type="checkbox"
-                        checked={selectedAthleteKeys.includes(athlete.athleteKey)}
+                        checked={selectedAthleteKeys.includes(athleteKey)}
                         onChange={(event) => {
                           setSelectedAthleteKeys((current) =>
                             event.target.checked
-                              ? [...current, athlete.athleteKey]
-                              : current.filter((key) => key !== athlete.athleteKey),
+                              ? [...current, athleteKey]
+                              : current.filter((key) => key !== athleteKey),
                           );
                         }}
                       />
                       <span>
-                        {athlete.athlete.lastName}, {athlete.athlete.firstName}
-                        <small>{athlete.age} {pl.fileImport.ageSuffix}</small>
+                        {athlete.lastName}, {athlete.firstName}
+                        {invitationState.kind === 'loaded' && (
+                          <small>
+                            {invitationState.meet.ageDate?.type === 'YEAR'
+                              ? Number(invitationState.meet.ageDate.value.slice(0, 4)) - athlete.birthYear
+                              : ''}{' '}
+                            {pl.fileImport.ageSuffix}
+                          </small>
+                        )}
                       </span>
                     </label>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="athlete-entry-options">

@@ -271,6 +271,7 @@ describe('LENEX parsers', () => {
         source: { kind: 'result' },
       },
     });
+    expect(buildAthleteEventOptions(meet, history, new Set(['not-an-athlete']))).toEqual([]);
     expect(resolveEvent(meet, 'F', '50m SF', 14)?.eventId).toBe('event-1');
     expect(resolveEvent(meet, 'F', '50m SF', 30)).toBeUndefined();
   });

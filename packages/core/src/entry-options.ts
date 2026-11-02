@@ -64,8 +64,11 @@ export function resolveEvent(
 export function buildAthleteEventOptions(
   meet: Meet,
   history: ImportedHistory,
+  athleteKeys?: ReadonlySet<string>,
 ): AthleteEntryOptions[] {
-  return history.athletes.map((athlete) => {
+  return history.athletes
+    .filter((athlete) => !athleteKeys || athleteKeys.has(identityKey(athlete)))
+    .map((athlete) => {
     const athleteKey = identityKey(athlete);
     const age = ageAt(meet, athlete.birthYear);
     const disciplineKeys = new Set(
@@ -88,6 +91,6 @@ export function buildAthleteEventOptions(
       })
       .sort((left, right) => left.event.number - right.event.number);
 
-    return { athlete, athleteKey, age, events };
-  });
+      return { athlete, athleteKey, age, events };
+    });
 }
