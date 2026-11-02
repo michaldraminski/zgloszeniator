@@ -26,6 +26,7 @@ export const pl = {
     historySummary: 'Podsumowanie danych historycznych',
     entryTimes: 'Czasy z poprzednich zgłoszeń',
     resultTimes: 'Ważne czasy z wyników',
+    unresolvedResults: 'Niektórych wyników nie da się przypisać do dyscyplin. Dodaj wcześniejsze zgłoszenie z tych samych zawodów, aby bezpiecznie powiązać eventy.',
     selectionHeading: 'Wybierz zawodników i zgłoszenia',
     selectAllAthletes: 'Zaznacz wszystkich zawodników',
     clearAthletes: 'Wyczyść wybór zawodników',

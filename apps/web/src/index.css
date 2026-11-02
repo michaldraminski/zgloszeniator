@@ -151,6 +151,14 @@ hr {
   color: #991b1b;
 }
 
+.unresolved-results {
+  padding: 0.65rem;
+  border: 1px solid #fcd34d;
+  border-radius: 0.5rem;
+  background: #fffbeb;
+  color: #854d0e;
+}
+
 .import-result details {
   margin-top: 0.5rem;
   color: #7f1d1d;

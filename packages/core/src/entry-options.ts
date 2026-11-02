@@ -50,7 +50,7 @@ export function resolveEvent(
   const matches = meet.events.filter(
     (event) =>
       event.gender === gender &&
-      event.relayCount === 0 &&
+      event.disciplineKey !== undefined &&
       normalizeDiscipline(event.disciplineKey) === normalizedKey &&
       event.ageGroups.some(
         (group) => age >= (group.min < 0 ? Number.NEGATIVE_INFINITY : group.min) &&
@@ -70,7 +70,11 @@ export function buildAthleteEventOptions(
     const age = ageAt(meet, athlete.birthYear);
     const disciplineKeys = new Set(
       meet.events
-        .filter((event) => event.gender === athlete.gender && event.relayCount === 0)
+        .filter(
+          (event): event is MeetEvent & { disciplineKey: string } =>
+            event.gender === athlete.gender &&
+            event.disciplineKey !== undefined,
+        )
         .map((event) => event.disciplineKey),
     );
     const events = [...disciplineKeys]

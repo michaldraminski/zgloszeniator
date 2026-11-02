@@ -63,6 +63,7 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 - `MEET` attributes that matter: `course="SCM"`, `deadline`, `maxentriesathlete="4"`, `reservecount`, `AGEDATE type="YEAR" value="2026-10-25"`.
 - 2 `SESSION`, 39 `EVENT` (36 individual + 3 relay), 99 `AGEGROUP`.
 - `EVENT`: `eventid` (**unique per meet only, never stable across meets**), `gender` (`F`, `M`, `X` for mixed relays), `number`, `order`, one `SWIMSTYLE`, `AGEGROUPS`.
+- `SWIMSTYLE@relaycount` is `1` for individual events and `4` for relay events in the real organizer files; do not identify individual events by requiring zero. Use `EVENT@gender` (`F`/`M` versus `X`) for the current individual-entry flow.
 - `SWIMSTYLE`: `distance`, `relaycount`, `swimstyleid`, `name`, `code`, `stroke="UNKNOWN"` (always, so **never use `stroke`**).
 - 12 distinct disciplines: `25m AP`, `50m AP`, `50m BF`, `100m BF`, `200m BF`, `400m BF`, `50m SF`, `100m SF`, `200m SF`, `400m SF`, `4x50m SF`, `4x50m BF`.
   (Presumably AP = apnoea, BF = bi-fins, SF = surface/monofin. Used only as opaque labels.)

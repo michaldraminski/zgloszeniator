@@ -3,7 +3,13 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { parseInvitation, parseResults } from '../src/index';
+import {
+  collectImportedHistory,
+  parseInvitation,
+  parseLenexDocument,
+  parseResults,
+  readLxf,
+} from '../src/index';
 
 describe('real LENEX sample fixtures', () => {
   const samplesDir = path.resolve(__dirname, '../../../private/samples');
@@ -36,5 +42,32 @@ describe('real LENEX sample fixtures', () => {
 
     expect(results.athletes.length).toBe(165);
     expect(results.validResults.length).toBeGreaterThan(0);
+  });
+
+  it('joins real results styles to the matching previous entry without persisting personal data', () => {
+    const workspaceRoot = path.resolve(__dirname, '../../..');
+    const resultsPath = path.join(workspaceRoot, 'results-Olecko.lxf');
+    const previousEntryPath = path.join(workspaceRoot, 'KPP OLECKO.lxf');
+
+    if (!existsSync(resultsPath) || !existsSync(previousEntryPath)) {
+      return;
+    }
+
+    const resultsDocument = parseLenexDocument(readLxf(new Uint8Array(readFileSync(resultsPath))).xml);
+    const previousEntryDocument = parseLenexDocument(
+      readLxf(new Uint8Array(readFileSync(previousEntryPath))).xml,
+    );
+
+    expect(resultsDocument.kind).toBe('results');
+    expect(previousEntryDocument.kind).toBe('entry');
+    const history = collectImportedHistory([previousEntryDocument, resultsDocument], [
+      path.basename(previousEntryPath),
+      path.basename(resultsPath),
+    ]);
+
+    expect(history.athletes).toHaveLength(165);
+    expect(history.observations.filter((observation) => observation.source.kind === 'result').length)
+      .toBeGreaterThan(0);
+    expect(history.unresolvedResultCount).toBe(0);
   });
 });

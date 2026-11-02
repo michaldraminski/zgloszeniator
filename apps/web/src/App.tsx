@@ -88,10 +88,11 @@ function getSuggestedTimeLabel(option: AthleteEventOption): string {
 
   const sourceLabel =
     suggestion.source.kind === 'result' ? pl.fileImport.resultSource : pl.fileImport.entrySource;
+  const sourceName = suggestion.sourceFileName ?? suggestion.source.meetName;
   const recency = suggestion.source.meetDate
     ? `${pl.fileImport.importedDate}: ${suggestion.source.meetDate}`
     : pl.fileImport.importOrder;
-  return `${sourceLabel} · ${suggestion.source.meetName} · ${recency}`;
+  return `${sourceLabel} · ${sourceName} · ${suggestion.source.meetName} · ${recency}`;
 }
 
 export default function App() {
@@ -99,7 +100,10 @@ export default function App() {
   const [historicalFiles, setHistoricalFiles] = useState<HistoricalFile[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [rejectedHistoryFiles, setRejectedHistoryFiles] = useState<RejectedHistoryFile[]>([]);
-  const importedHistory = collectImportedHistory(historicalFiles.map(({ document }) => document));
+  const importedHistory = collectImportedHistory(
+    historicalFiles.map(({ document }) => document),
+    historicalFiles.map(({ fileName }) => fileName),
+  );
   const entryOptions =
     invitationState.kind === 'loaded'
       ? buildAthleteEventOptions(invitationState.meet, importedHistory)
@@ -338,6 +342,11 @@ export default function App() {
               {pl.fileImport.entryTimes}: {entryObservationCount} · {pl.fileImport.resultTimes}:{' '}
               {resultObservationCount}
             </p>
+            {importedHistory.unresolvedResultCount > 0 && (
+              <p className="unresolved-results" role="status">
+                {pl.fileImport.unresolvedResults} ({importedHistory.unresolvedResultCount})
+              </p>
+            )}
             <h4>{pl.fileImport.historyImported}</h4>
             <ul>
               {historicalFiles.map(({ fileName, document }, index) => (

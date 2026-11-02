@@ -23,7 +23,7 @@ const invitationXml = `<?xml version="1.0" encoding="UTF-8"?>
         <SESSION number="1">
           <EVENTS>
             <EVENT eventid="event-1" number="1" order="1" gender="F">
-              <SWIMSTYLE name="50m SF" distance="50" relaycount="0" />
+              <SWIMSTYLE name="50m SF" distance="50" relaycount="1" />
               <AGEGROUPS><AGEGROUP name="Junior" agemin="12" agemax="15" /></AGEGROUPS>
             </EVENT>
             <EVENT eventid="event-relay" number="2" order="2" gender="X">
@@ -163,6 +163,39 @@ describe('LENEX parsers', () => {
     expect(parsed.validResults).toHaveLength(1);
   });
 
+  it('parses unnamed result styles and resolves them through a matching previous entry', () => {
+    const previousMeetXml = entryXml
+      .replace('name="Synthetic Meet" course="SCM"', 'name="Olecko Meet" city="Olecko" course="SCM"');
+    const resultsWithoutStyleNames = resultsXml
+      .replace('name="Synthetic Meet" course="SCM" status="OFFICIAL"', 'name="Olecko Meet" city="Olecko" course="SCM" status="OFFICIAL"')
+      .replace('name="50m SF"', 'distance="50" stroke="SURFACE"');
+    const previousEntry = parseLenexDocument(previousMeetXml);
+    const results = parseLenexDocument(resultsWithoutStyleNames);
+
+    expect(results.kind).toBe('results');
+    if (results.kind !== 'results') {
+      return;
+    }
+    expect(results.results.athletes).toHaveLength(1);
+    expect(results.results.validResults).toHaveLength(1);
+    expect(results.results.validResults[0].disciplineKey).toBeUndefined();
+
+    const history = collectImportedHistory([previousEntry, results]);
+    expect(history.observations).toContainEqual(
+      expect.objectContaining({
+        disciplineKey: '50m SF',
+        timeCs: 3080,
+        source: expect.objectContaining({ kind: 'result' }),
+      }),
+    );
+    expect(history.unresolvedResultCount).toBe(0);
+
+    const unrelatedEntry = parseLenexDocument(previousMeetXml.replace('city="Olecko"', 'city="Other City"'));
+    const unresolvedHistory = collectImportedHistory([unrelatedEntry, results]);
+    expect(unresolvedHistory.unresolvedResultCount).toBe(1);
+    expect(unresolvedHistory.observations.some((observation) => observation.source.kind === 'result')).toBe(false);
+  });
+
   it('rejects malformed or unsupported invitation structures', () => {
     expect(() => parseInvitation('<LENEX><MEETS /></LENEX>')).toThrow();
     expect(() => parseInvitation(invitationXml.replace('type="YEAR"', 'type="AGE"'))).toThrow(
@@ -254,5 +287,21 @@ describe('LENEX parsers', () => {
     ).toBe(
       identityKey({ firstName: '  ÉVA ', lastName: 'KOWALSKA', birthYear: 2012, gender: 'F' }),
     );
+  });
+
+  it('sorts imported athletes by surname then first name', () => {
+    const xml = resultsXml.replace(
+      '</ATHLETES>',
+      '<ATHLETE firstname="Ala" lastname="Nowak" birthdate="2011-01-01" gender="F" />' +
+        '<ATHLETE firstname="Adam" lastname="Adamski" birthdate="2010-01-01" gender="M" />' +
+        '</ATHLETES>',
+    );
+    const history = collectImportedHistory([parseLenexDocument(xml)]);
+
+    expect(history.athletes.map((athlete) => athlete.lastName)).toEqual([
+      'Adamski',
+      'Example',
+      'Nowak',
+    ]);
   });
 });

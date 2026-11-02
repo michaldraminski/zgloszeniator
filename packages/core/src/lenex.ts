@@ -11,7 +11,7 @@ export interface MeetEvent {
   number: number;
   sessionNumber: number;
   gender: EventGender;
-  disciplineKey: string;
+  disciplineKey?: string;
   relayCount: number;
   ageGroups: Array<{ name: string; min: number; max: number | null }>;
 }
@@ -19,6 +19,7 @@ export interface MeetEvent {
 export interface Meet {
   key: string;
   name: string;
+  city?: string;
   course: Course;
   meetDate?: string;
   deadline?: string;
@@ -72,7 +73,8 @@ export interface IncomingAthlete {
 
 export interface ValidResult {
   athlete: IncomingAthlete;
-  disciplineKey: string;
+  eventId: string;
+  disciplineKey?: string;
   course: Course;
   timeCs: number;
 }
@@ -238,7 +240,12 @@ function normalizeDiscipline(value: string): string {
   return value.normalize('NFC').trim().replace(/\s+/g, ' ');
 }
 
-function parseMeet(xml: string, meetRecord: XmlRecord, requireAgeDate = true): Meet {
+function parseMeet(
+  xml: string,
+  meetRecord: XmlRecord,
+  options: { requireAgeDate?: boolean; allowUnnamedStyles?: boolean } = {},
+): Meet {
+  const requireAgeDate = options.requireAgeDate ?? true;
   const name = requiredAttr(meetRecord, 'name', 'MEET');
   const ageDateNode = child(meetRecord, 'AGEDATE');
   const ageDateType = attr(ageDateNode, 'type');
@@ -263,8 +270,12 @@ function parseMeet(xml: string, meetRecord: XmlRecord, requireAgeDate = true): M
     const eventsNode = child(session, 'EVENTS');
     for (const event of eventsNode ? children(eventsNode.EVENT) : []) {
       const swimStyle = child(event, 'SWIMSTYLE');
-      const disciplineKey = normalizeDiscipline(requiredAttr(swimStyle, 'name', 'SWIMSTYLE'));
-      if (!disciplineKey) {
+      const styleName = attr(swimStyle, 'name');
+      if (!styleName && !options.allowUnnamedStyles) {
+        throw new LenexParseError('Missing SWIMSTYLE@name');
+      }
+      const disciplineKey = styleName ? normalizeDiscipline(styleName) : undefined;
+      if (styleName && !disciplineKey) {
         throw new LenexParseError('SWIMSTYLE@name cannot be empty');
       }
       const ageGroupsNode = child(event, 'AGEGROUPS');
@@ -281,7 +292,7 @@ function parseMeet(xml: string, meetRecord: XmlRecord, requireAgeDate = true): M
         number: integerAttr(event, 'number', 'EVENT', { required: true }),
         sessionNumber,
         gender: parseGender(attr(event, 'gender'), 'EVENT'),
-        disciplineKey,
+        ...(disciplineKey ? { disciplineKey } : {}),
         relayCount: integerAttr(swimStyle, 'relaycount', 'SWIMSTYLE'),
         ageGroups,
       });
@@ -297,6 +308,7 @@ function parseMeet(xml: string, meetRecord: XmlRecord, requireAgeDate = true): M
   return {
     key: name,
     name,
+    ...(attr(meetRecord, 'city') ? { city: attr(meetRecord, 'city') } : {}),
     course: parseCourse(attr(meetRecord, 'course')),
     ...(meetDate ? { meetDate } : {}),
     ...(attr(meetRecord, 'deadline') ? { deadline: attr(meetRecord, 'deadline') } : {}),
@@ -315,7 +327,11 @@ export function parseInvitation(xml: string): Meet {
 }
 
 function eventDisciplineMap(meet: Meet): Map<string, string> {
-  return new Map(meet.events.map((event) => [event.eventId, event.disciplineKey]));
+  return new Map(
+    meet.events
+      .filter((event): event is MeetEvent & { disciplineKey: string } => Boolean(event.disciplineKey))
+      .map((event) => [event.eventId, event.disciplineKey]),
+  );
 }
 
 function resolveDiscipline(eventId: string, eventMap: Map<string, string>): string {
@@ -409,7 +425,7 @@ export function identityKey(athlete: IncomingAthlete): string {
 export function parseResults(xml: string): ParsedResults {
   const lenex = parseXml(xml);
   const meetRecord = findMeet(lenex);
-  const meet = parseMeet(xml, meetRecord, false);
+  const meet = parseMeet(xml, meetRecord, { requireAgeDate: false, allowUnnamedStyles: true });
   const eventMap = eventDisciplineMap(meet);
   const clubs = findClubs(lenex, meetRecord);
   const athletes: IncomingAthlete[] = [];
@@ -446,7 +462,8 @@ export function parseResults(xml: string): ParsedResults {
         const eventId = requiredAttr(result, 'eventid', 'RESULT');
         validResults.push({
           athlete,
-          disciplineKey: resolveDiscipline(eventId, eventMap),
+          eventId,
+          ...(eventMap.get(eventId) ? { disciplineKey: eventMap.get(eventId) } : {}),
           course: meet.course,
           timeCs,
         });
