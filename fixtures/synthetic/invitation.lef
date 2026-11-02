@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LENEX version="3.0">
+  <MEETS>
+    <MEET name="Synthetic Meet" course="SCM" deadline="2099-12-31" maxentriesathlete="4">
+      <AGEDATE type="YEAR" value="2099-12-31" />
+      <SESSIONS>
+        <SESSION number="1">
+          <EVENTS>
+            <EVENT eventid="synthetic-event-1" number="1" order="1" gender="F">
+              <SWIMSTYLE name="50m SF" distance="50" relaycount="0" />
+              <AGEGROUPS>
+                <AGEGROUP name="Synthetic Junior" agemin="12" agemax="15" />
+              </AGEGROUPS>
+            </EVENT>
+          </EVENTS>
+        </SESSION>
+      </SESSIONS>
+    </MEET>
+  </MEETS>
+</LENEX>

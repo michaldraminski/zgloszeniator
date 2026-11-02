@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseEntryFile, parseInvitation, parseResults } from '../src/index';
+import {
+  parseEntryFile,
+  parseInvitation,
+  parseLenexDocument,
+  parseResults,
+} from '../src/index';
 
 const invitationXml = `<?xml version="1.0" encoding="UTF-8"?>
 <LENEX version="3.0">
@@ -122,5 +127,11 @@ describe('LENEX parsers', () => {
     expect(() => parseInvitation(invitationXml.replace('type="YEAR"', 'type="AGE"'))).toThrow(
       'Unsupported AGEDATE type: AGE',
     );
+  });
+
+  it('dispatches each document to its parser based on content', () => {
+    expect(parseLenexDocument(invitationXml).kind).toBe('invitation');
+    expect(parseLenexDocument(entryXml).kind).toBe('entry');
+    expect(parseLenexDocument(resultsXml).kind).toBe('results');
   });
 });

@@ -82,6 +82,13 @@ export interface ParsedResults {
   validResults: ValidResult[];
 }
 
+export type LenexDocumentType = 'invitation' | 'entry' | 'results';
+
+export type ParsedLenexDocument =
+  | { kind: 'invitation'; meet: Meet }
+  | { kind: 'entry'; entryFile: ParsedEntryFile }
+  | { kind: 'results'; results: ParsedResults };
+
 export class LenexParseError extends Error {
   constructor(message: string) {
     super(message);
@@ -164,6 +171,31 @@ function parseXml(xml: string): XmlRecord {
     throw new LenexParseError('Missing LENEX root element');
   }
   return lenex;
+}
+
+function containsElement(value: unknown, elementName: string): boolean {
+  const record = asRecord(value);
+  if (!record) {
+    if (Array.isArray(value)) {
+      return value.some((item) => containsElement(item, elementName));
+    }
+    return false;
+  }
+
+  return Object.entries(record).some(
+    ([name, nested]) => name === elementName || containsElement(nested, elementName),
+  );
+}
+
+export function detectLenexType(xml: string): LenexDocumentType {
+  const lenex = parseXml(xml);
+  if (containsElement(lenex, 'RESULT')) {
+    return 'results';
+  }
+  if (containsElement(lenex, 'CLUBS') && containsElement(lenex, 'ENTRY')) {
+    return 'entry';
+  }
+  return 'invitation';
 }
 
 function findMeet(lenex: XmlRecord): XmlRecord {
@@ -409,4 +441,16 @@ export function parseResults(xml: string): ParsedResults {
   }
 
   return { meet, athletes, validResults };
+}
+
+export function parseLenexDocument(xml: string): ParsedLenexDocument {
+  const kind = detectLenexType(xml);
+  switch (kind) {
+    case 'invitation':
+      return { kind, meet: parseInvitation(xml) };
+    case 'entry':
+      return { kind, entryFile: parseEntryFile(xml) };
+    case 'results':
+      return { kind, results: parseResults(xml) };
+  }
 }
