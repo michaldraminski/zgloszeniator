@@ -1,0 +1,18 @@
+# Local-only data
+private/
+*.lxf
+*.lef
+!fixtures/public/**
+!fixtures/synthetic/**
+
+# Node / tooling
+node_modules/
+.pnpm-store/
+coverage/
+dist/
+.vite/
+
+# OS/editor
+desktop.ini
+.DS_Store
+Thumbs.db
