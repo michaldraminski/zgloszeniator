@@ -5,6 +5,8 @@ import {
   parseInvitation,
   parseLenexDocument,
   parseResults,
+  collectImportedHistory,
+  identityKey,
 } from '../src/index';
 
 const invitationXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -133,5 +135,29 @@ describe('LENEX parsers', () => {
     expect(parseLenexDocument(invitationXml).kind).toBe('invitation');
     expect(parseLenexDocument(entryXml).kind).toBe('entry');
     expect(parseLenexDocument(resultsXml).kind).toBe('results');
+  });
+  
+  it('combines prior entries and results by normalized athlete identity', () => {
+    const history = collectImportedHistory([
+      parseLenexDocument(entryXml),
+      parseLenexDocument(resultsXml),
+      parseLenexDocument(invitationXml),
+    ]);
+
+    expect(history.athletes).toHaveLength(1);
+    expect(history.observations).toHaveLength(2);
+    expect(history.observations.map((observation) => observation.source.kind).sort()).toEqual([
+      'entry',
+      'result',
+    ]);
+    expect(history.observations.map((observation) => observation.timeCs)).toEqual([3125, 3080]);
+  });
+
+  it('normalizes athlete identity with Unicode NFC, whitespace, and case folding', () => {
+    expect(
+      identityKey({ firstName: 'Éva', lastName: 'Kowalska', birthYear: 2012, gender: 'F' }),
+    ).toBe(
+      identityKey({ firstName: '  ÉVA ', lastName: 'KOWALSKA', birthYear: 2012, gender: 'F' }),
+    );
   });
 });

@@ -382,7 +382,7 @@ export function parseEntryFile(xml: string): ParsedEntryFile {
   return { meet, clubs };
 }
 
-function normalizedIdentity(athlete: IncomingAthlete): string {
+export function identityKey(athlete: IncomingAthlete): string {
   const normalize = (value: string) => value.normalize('NFC').trim().toLowerCase();
   return [
     normalize(athlete.lastName),
@@ -411,7 +411,7 @@ export function parseResults(xml: string): ParsedResults {
         birthYear: parseBirthYear(attr(athleteRecord, 'birthdate'), 'ATHLETE'),
         gender: parseAthleteGender(attr(athleteRecord, 'gender')),
       };
-      const key = normalizedIdentity(athlete);
+      const key = identityKey(athlete);
       if (!seenAthletes.has(key)) {
         athletes.push(athlete);
         seenAthletes.add(key);
