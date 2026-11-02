@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import {
   buildEntryFile,
   buildAthleteEventOptions,
+  ageAt,
   collectImportedHistory,
   formatTime,
   identityKey,
@@ -19,6 +20,7 @@ import {
 } from '@lenex-entries/core';
 
 import { pl } from './i18n/pl';
+import { filterAthletes } from './roster';
 
 type InvitationImportState =
   | { kind: 'idle' }
@@ -118,6 +120,7 @@ export default function App() {
     gender: 'F' as Gender,
   });
   const [athleteFormError, setAthleteFormError] = useState('');
+  const [athleteSearch, setAthleteSearch] = useState('');
   const [clubDetails, setClubDetails] = useState({
     name: '',
     contactName: '',
@@ -155,6 +158,7 @@ export default function App() {
       left.birthYear - right.birthYear
     );
   });
+  const visibleAthletes = filterAthletes(rosterAthletes, athleteSearch);
   const historyWithRoster = { ...importedHistory, athletes: rosterAthletes };
   const selectedEntryOptions =
     invitationState.kind === 'loaded'
@@ -270,10 +274,13 @@ export default function App() {
       const buffer = bytes.slice().buffer as ArrayBuffer;
       const blob = new Blob([buffer], { type: 'application/zip' });
       const objectUrl = URL.createObjectURL(blob);
-      const safeMeetName = invitationState.meet.name
+      const safeMeetName = (invitationState.meet.city || invitationState.meet.name)
         .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '-')
         .trim() || 'zgłoszenie';
-      const fileName = `${safeMeetName}.lxf`;
+      const safeClubName = clubDetails.name
+        .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '-')
+        .trim();
+      const fileName = `Zgłoszenie - ${safeClubName} - ${safeMeetName}.lxf`;
       setGeneratedDownload({ fileName, url: objectUrl });
       const link = document.createElement('a');
       link.href = objectUrl;
@@ -382,57 +389,6 @@ export default function App() {
       </header>
 
       <section className="panel">
-        <h2>{pl.sections.roster}</h2>
-        <p>{pl.roster.description}</p>
-        <form className="athlete-form" onSubmit={addAthlete}>
-          <label>
-            <span>{pl.roster.lastName}</span>
-            <input
-              required
-              value={athleteForm.lastName}
-              onChange={(event) => setAthleteForm((current) => ({ ...current, lastName: event.target.value }))}
-            />
-          </label>
-          <label>
-            <span>{pl.roster.firstName}</span>
-            <input
-              required
-              value={athleteForm.firstName}
-              onChange={(event) => setAthleteForm((current) => ({ ...current, firstName: event.target.value }))}
-            />
-          </label>
-          <label>
-            <span>{pl.roster.birthYear}</span>
-            <input
-              required
-              type="number"
-              inputMode="numeric"
-              min="1900"
-              max="2100"
-              step="1"
-              value={athleteForm.birthYear}
-              onChange={(event) => setAthleteForm((current) => ({ ...current, birthYear: event.target.value }))}
-            />
-          </label>
-          <label>
-            <span>{pl.roster.gender}</span>
-            <select
-              value={athleteForm.gender}
-              onChange={(event) => setAthleteForm((current) => ({ ...current, gender: event.target.value as Gender }))}
-            >
-              <option value="F">{pl.roster.genderFemale}</option>
-              <option value="M">{pl.roster.genderMale}</option>
-            </select>
-          </label>
-          <button type="submit">{pl.roster.addAthlete}</button>
-        </form>
-        {athleteFormError && <p className="form-error" role="alert">{athleteFormError}</p>}
-        {localAthletes.length > 0 && (
-          <p className="privacy-note">{pl.roster.sessionOnly} {localAthletes.length}</p>
-        )}
-      </section>
-
-      <section className="panel">
         <h2>{pl.sections.import}</h2>
         <h3>{pl.fileImport.invitationHeading}</h3>
         <p>{pl.fileImport.invitationHint}</p>
@@ -485,6 +441,7 @@ export default function App() {
             <h3>{invitationState.meet.name}</h3>
             <p>{invitationState.fileName}</p>
             <p>{getDocumentSummary({ kind: 'invitation', meet: invitationState.meet })}</p>
+            <p className="privacy-note">{pl.fileImport.ageRule}</p>
           </div>
         )}
 
@@ -568,6 +525,59 @@ export default function App() {
         )}
       </section>
 
+      {invitationState.kind === 'loaded' && (
+        <section className="panel roster-panel">
+          <h2>{pl.sections.roster}</h2>
+          <p>{pl.roster.description}</p>
+          <form className="athlete-form" onSubmit={addAthlete}>
+            <label>
+              <span>{pl.roster.lastName}</span>
+              <input
+                required
+                value={athleteForm.lastName}
+                onChange={(event) => setAthleteForm((current) => ({ ...current, lastName: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{pl.roster.firstName}</span>
+              <input
+                required
+                value={athleteForm.firstName}
+                onChange={(event) => setAthleteForm((current) => ({ ...current, firstName: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{pl.roster.birthYear}</span>
+              <input
+                required
+                type="number"
+                inputMode="numeric"
+                min="1900"
+                max="2100"
+                step="1"
+                value={athleteForm.birthYear}
+                onChange={(event) => setAthleteForm((current) => ({ ...current, birthYear: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{pl.roster.gender}</span>
+              <select
+                value={athleteForm.gender}
+                onChange={(event) => setAthleteForm((current) => ({ ...current, gender: event.target.value as Gender }))}
+              >
+                <option value="F">{pl.roster.genderFemale}</option>
+                <option value="M">{pl.roster.genderMale}</option>
+              </select>
+            </label>
+            <button type="submit">{pl.roster.addAthlete}</button>
+          </form>
+          {athleteFormError && <p className="form-error" role="alert">{athleteFormError}</p>}
+          {localAthletes.length > 0 && (
+            <p className="privacy-note">{pl.roster.sessionOnly} {localAthletes.length}</p>
+          )}
+        </section>
+      )}
+
       {invitationState.kind === 'loaded' && (historicalFiles.length > 0 || localAthletes.length > 0) && (
         <section className="panel entry-planner">
           <div className="entry-planner-header">
@@ -590,10 +600,12 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setGeneratedDownload(null);
-                    setSelectedAthleteKeys(rosterAthletes.map((athlete) => identityKey(athlete)));
+                    setSelectedAthleteKeys((current) => [
+                      ...new Set([...current, ...visibleAthletes.map((athlete) => identityKey(athlete))]),
+                    ]);
                   }}
                 >
-                  {pl.fileImport.selectAllAthletes}
+                  {pl.fileImport.selectVisibleAthletes}
                 </button>
                 <button
                   type="button"
@@ -606,9 +618,22 @@ export default function App() {
                 </button>
               </div>
 
+              <label className="athlete-search">
+                <span>{pl.roster.search}</span>
+                <input
+                  type="search"
+                  value={athleteSearch}
+                  onChange={(event) => setAthleteSearch(event.target.value)}
+                  placeholder={pl.roster.searchPlaceholder}
+                />
+              </label>
+
               <div className="entry-planner-grid">
                 <div className="athlete-list" aria-label={pl.fileImport.athleteListLabel}>
-                  {rosterAthletes.map((athlete) => {
+                  {visibleAthletes.length === 0 && (
+                    <p className="athlete-search-empty">{pl.roster.noSearchResults}</p>
+                  )}
+                  {visibleAthletes.map((athlete) => {
                     const athleteKey = identityKey(athlete);
                     return (
                     <label className="athlete-choice" key={athleteKey}>
@@ -628,9 +653,7 @@ export default function App() {
                         {athlete.lastName}, {athlete.firstName}
                         {invitationState.kind === 'loaded' && (
                           <small>
-                            {invitationState.meet.ageDate?.type === 'YEAR'
-                              ? Number(invitationState.meet.ageDate.value.slice(0, 4)) - athlete.birthYear
-                              : ''}{' '}
+                            {ageAt(invitationState.meet, athlete.birthYear)}{' '}
                             {pl.fileImport.ageSuffix}
                           </small>
                         )}

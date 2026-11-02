@@ -333,6 +333,16 @@ describe('LENEX parsers', () => {
     expect(resolveEvent(meet, 'F', '50m SF', 30)).toBeUndefined();
   });
 
+  it('calculates competition age from the invitation age date rather than the current year', () => {
+    const meet2026 = parseInvitation(invitationXml);
+    const meet2027 = parseInvitation(
+      invitationXml.replace('value="2026-10-25"', 'value="2027-10-25"'),
+    );
+
+    expect(ageAt(meet2026, 2012)).toBe(14);
+    expect(ageAt(meet2027, 2012)).toBe(15);
+  });
+
   it('rejects unsupported age-date types when resolving athlete eligibility', () => {
     const meet = { ...parseInvitation(invitationXml), ageDate: { type: 'AGE', value: '2026' } };
 

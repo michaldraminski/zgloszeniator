@@ -4,11 +4,16 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  ageAt,
+  buildEntryFile,
   collectImportedHistory,
+  identityKey,
   parseInvitation,
+  parseEntryFile,
   parseLenexDocument,
   parseResults,
   readLxf,
+  resolveEvent,
 } from '../src/index';
 
 describe('real LENEX sample fixtures', () => {
@@ -73,5 +78,95 @@ describe('real LENEX sample fixtures', () => {
       history.observations.filter((observation) => observation.source.kind === 'result'),
     ).toHaveLength(resultsDocument.results.validResults.length);
     expect(history.unresolvedResultCount).toBe(0);
+  });
+
+  it('compares an Olecko-generated entry with the ready file without persisting personal data', () => {
+    const workspaceRoot = path.resolve(__dirname, '../../..');
+    const invitationPath = path.join(workspaceRoot, 'zaproszenie-Olecko.lxf');
+    const readyEntryPath = path.join(workspaceRoot, 'KPP OLECKO.lxf');
+    if (!existsSync(invitationPath) || !existsSync(readyEntryPath)) {
+      return;
+    }
+
+    const invitationXml = readLxf(new Uint8Array(readFileSync(invitationPath))).xml;
+    const readyEntryXml = readLxf(new Uint8Array(readFileSync(readyEntryPath))).xml;
+    const meet = parseInvitation(invitationXml);
+    const readyEntry = parseEntryFile(readyEntryXml);
+    expect(readyEntry.clubs).toHaveLength(1);
+    const sourceClub = readyEntry.clubs[0];
+
+    const athletes = sourceClub.athletes.map((athlete) => ({
+      firstName: athlete.firstName,
+      lastName: athlete.lastName,
+      birthYear: athlete.birthYear,
+      gender: athlete.gender,
+      entries: athlete.entries.map((entry) => {
+        const event = resolveEvent(
+          meet,
+          athlete.gender,
+          entry.disciplineKey,
+          ageAt(meet, athlete.birthYear),
+        );
+        if (!event || entry.timeCs === null) {
+          throw new Error('Olecko event schedule cannot reproduce a ready-file entry');
+        }
+        return { eventId: event.eventId, timeCs: entry.timeCs };
+      }),
+    }));
+
+    const generatedXml = readLxf(
+      buildEntryFile(meet, {
+        club: { name: sourceClub.name, contact: sourceClub.contact },
+        athletes,
+      }),
+    ).xml;
+    const generated = parseEntryFile(generatedXml);
+    const sourceRecords = sourceClub.athletes.flatMap((athlete) =>
+      athlete.entries.map((entry) => ({
+        athlete: identityKey(athlete),
+        discipline: entry.disciplineKey,
+        timeCs: entry.timeCs,
+      })),
+    ).sort((left, right) =>
+      left.athlete.localeCompare(right.athlete) ||
+      left.discipline.localeCompare(right.discipline) ||
+      (left.timeCs ?? -1) - (right.timeCs ?? -1),
+    );
+    const generatedRecords = generated.clubs.flatMap((club) =>
+      club.athletes.flatMap((athlete) =>
+        athlete.entries.map((entry) => ({
+          athlete: identityKey(athlete),
+          discipline: entry.disciplineKey,
+          timeCs: entry.timeCs,
+        })),
+      ),
+    ).sort((left, right) =>
+      left.athlete.localeCompare(right.athlete) ||
+      left.discipline.localeCompare(right.discipline) ||
+      (left.timeCs ?? -1) - (right.timeCs ?? -1),
+    );
+
+    expect(generated.meet.events).toEqual(meet.events);
+    expect(generated.clubs[0].name).toBe(sourceClub.name);
+    expect(generated.clubs[0].contact).toEqual(sourceClub.contact);
+    expect(generated.clubs[0].athletes).toHaveLength(sourceClub.athletes.length);
+    expect(generatedRecords).toEqual(sourceRecords);
+  });
+
+  it('audits the new Olecko invitation metadata without exposing fixture records', () => {
+    const workspaceRoot = path.resolve(__dirname, '../../..');
+    const invitationPath = path.join(workspaceRoot, 'zaproszenie-Olecko.lxf');
+    if (!existsSync(invitationPath)) {
+      return;
+    }
+
+    const xml = readLxf(new Uint8Array(readFileSync(invitationPath))).xml;
+    const meet = parseInvitation(xml);
+    const entryAge = ageAt(meet, 2012);
+
+    expect(meet.events).toHaveLength(39);
+    expect(new Set(meet.events.map((event) => event.disciplineKey)).size).toBe(12);
+    expect(meet.events.some((event) => event.gender === 'X' && event.relayCount === 4)).toBe(true);
+    expect(entryAge).toBe(14);
   });
 });
