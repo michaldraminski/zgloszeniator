@@ -77,7 +77,7 @@ export const pl = {
     historyHeading: 'Poprzednie zgłoszenia i wyniki (opcjonalnie)',
     historyHint: 'Dodaj pliki zgłoszeń z poprzednich zawodów lub opublikowane wyniki, aby wczytać zawodników i ich czasy.',
     chooseHistory: 'Dodaj poprzednie zgłoszenia lub wyniki',
-    localOnlyHint: 'Pliki są przetwarzane i zapisywane lokalnie w tej przeglądarce. Dane nie są wysyłane do sieci.',
+    localOnlyHint: 'Pliki są przetwarzane lokalnie, a bieżące zgłoszenie zapisuje się automatycznie w tej przeglądarce. Dane nie są wysyłane do sieci.',
     persistence: {
       loading: 'Odtwarzanie ostatniego zgłoszenia z pamięci przeglądarki…',
       saving: 'Zapisywanie zmian na tym urządzeniu…',
@@ -86,6 +86,8 @@ export const pl = {
     },
     exportBackup: 'Pobierz kopię zapasową JSON',
     importBackup: 'Przywróć kopię JSON',
+    storageTools: 'Opcjonalnie: kopia zapasowa i pamięć przeglądarki',
+    backupHelp: 'Przywrócenie kopii zastąpi aktualne zgłoszenie. Kopię przechowuj w bezpiecznym miejscu.',
     backupExported: 'Kopia zapasowa została pobrana. Przechowuj ją w bezpiecznym miejscu.',
     backupImported: 'Kopia zapasowa została sprawdzona i przywrócona.',
     backupInvalid: 'Kopia ma nieprawidłowy format lub nieobsługiwane dane. Bieżące dane nie zostały zmienione.',

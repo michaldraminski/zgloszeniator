@@ -50,7 +50,7 @@ The workspace contains `apps/web` (React + Vite) and `packages/core` (strict Typ
 
 - The default export format is LENEX 2.0 encoded as Windows-1250, matching the Splash-produced entry examples currently used by the project.
 - Always test a generated submission with the organizer's version of Splash Meet Manager before relying on it for a meet.
-- In particular, acceptance of exports containing optional relay-member positions (`RELAYPOSITIONS`) has not yet been confirmed in Splash.
+- Optional relay-member assignments are written as LENEX `RELAYPOSITIONS`; Splash startlists with assigned relay members have been observed by the project owner.
 - Offline/PWA installation and a permanent shared roster are not implemented yet. Browser autosave is for the current draft; JSON backup is the portable copy.
 
 See [HANDOFF.md](HANDOFF.md) for verified LENEX facts, project decisions, current milestones, and open compatibility questions.

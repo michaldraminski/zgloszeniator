@@ -516,6 +516,25 @@ ul {
   cursor: not-allowed;
 }
 
+.advanced-storage-tools {
+  margin: 0.8rem 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.7rem;
+  background: #f8fafc;
+}
+
+.advanced-storage-tools summary {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.advanced-storage-tools[open] summary {
+  margin-bottom: 0.7rem;
+}
+
 .file-input {
   position: absolute;
   width: 1px;

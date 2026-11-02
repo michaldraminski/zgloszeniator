@@ -774,41 +774,45 @@ export default function App() {
         <p className={`privacy-note persistence-${persistenceStatus}`} role="status">
           {pl.fileImport.persistence[persistenceStatus]}
         </p>
-        <div className="backup-actions">
-          <button type="button" disabled={!persistenceReady} onClick={exportBackup}>
-            {pl.fileImport.exportBackup}
-          </button>
-          <label className={`file-picker${persistenceReady ? '' : ' file-picker-disabled'}`}>
-            <span>{pl.fileImport.importBackup}</span>
-            <input
-              className="file-input"
-              type="file"
-              accept="application/json,.json"
-              disabled={!persistenceReady}
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                event.currentTarget.value = '';
-                if (file) void importBackup(file);
-              }}
-            />
-          </label>
-          {backupMessage && <p className="privacy-note" role="status">{backupMessage}</p>}
-        </div>
-        {storagePersistence === 'granted' ? (
-          <p className="privacy-note" role="status">{pl.fileImport.storageProtected}</p>
-        ) : (
+        <details className="advanced-storage-tools">
+          <summary>{pl.fileImport.storageTools}</summary>
+          <p className="privacy-note">{pl.fileImport.backupHelp}</p>
           <div className="backup-actions">
-            <button type="button" onClick={() => void requestPersistentStorage()}>
-              {pl.fileImport.requestStorageProtection}
+            <button type="button" disabled={!persistenceReady} onClick={exportBackup}>
+              {pl.fileImport.exportBackup}
             </button>
-            {storagePersistence === 'unsupported' && (
-              <p className="privacy-note">{pl.fileImport.storageProtectionUnavailable}</p>
-            )}
-            {storagePersistence === 'not-granted' && (
-              <p className="privacy-note">{pl.fileImport.storageNotProtected}</p>
-            )}
+            <label className={`file-picker${persistenceReady ? '' : ' file-picker-disabled'}`}>
+              <span>{pl.fileImport.importBackup}</span>
+              <input
+                className="file-input"
+                type="file"
+                accept="application/json,.json"
+                disabled={!persistenceReady}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  event.currentTarget.value = '';
+                  if (file) void importBackup(file);
+                }}
+              />
+            </label>
+            {backupMessage && <p className="privacy-note" role="status">{backupMessage}</p>}
           </div>
-        )}
+          {storagePersistence === 'granted' ? (
+            <p className="privacy-note" role="status">{pl.fileImport.storageProtected}</p>
+          ) : (
+            <div className="backup-actions">
+              <button type="button" onClick={() => void requestPersistentStorage()}>
+                {pl.fileImport.requestStorageProtection}
+              </button>
+              {storagePersistence === 'unsupported' && (
+                <p className="privacy-note">{pl.fileImport.storageProtectionUnavailable}</p>
+              )}
+              {storagePersistence === 'not-granted' && (
+                <p className="privacy-note">{pl.fileImport.storageNotProtected}</p>
+              )}
+            </div>
+          )}
+        </details>
         <p className="privacy-note">{pl.fileImport.timePriorityHint}</p>
         <label
           className={`file-picker${invitationState.kind !== 'loaded' ? ' file-picker-disabled' : ''}`}
