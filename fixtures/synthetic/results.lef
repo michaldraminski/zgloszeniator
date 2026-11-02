@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LENEX version="3.0">
+  <MEETS>
+    <MEET name="Synthetic Results Meet" course="SCM" status="OFFICIAL">
+      <SESSIONS>
+        <SESSION number="1">
+          <EVENTS>
+            <EVENT eventid="synthetic-event-1" number="1" gender="F">
+              <SWIMSTYLE name="50m SF" relaycount="0" />
+            </EVENT>
+          </EVENTS>
+        </SESSION>
+      </SESSIONS>
+      <CLUBS>
+        <CLUB name="Synthetic Club">
+          <ATHLETES>
+            <ATHLETE firstname="Example" lastname="Swimmer" birthdate="2012-06-01" gender="F" athleteid="external-synthetic-id">
+              <RESULTS>
+                <RESULT eventid="synthetic-event-1" swimtime="00:00:29.90" />
+                <RESULT eventid="synthetic-event-1" swimtime="00:00:28.80" status="DSQ" />
+              </RESULTS>
+            </ATHLETE>
+          </ATHLETES>
+        </CLUB>
+      </CLUBS>
+    </MEET>
+  </MEETS>
+</LENEX>

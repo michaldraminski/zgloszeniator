@@ -236,7 +236,7 @@ Golden test = **semantic** equality (canonical XML: sorted attributes, trimmed w
 ## 8. UI spec (labels in Polish)
 
 1. **Zawodnicy**: roster table (add/edit/delete, birth year, gender). Import from CSV or paste from Excel. Search.
-2. **Import**: one drop zone for `.lxf`/`.lef`/`.json`. Auto-detect by content: has `CLUBS` with `ENTRY` = previous entry; has `RESULT` = results; neither = invitation. Show a preview: matched / new / ambiguous athletes with a confirm step. Nothing is written before confirmation.
+2. **Import**: first load the current organizer invitation (`.lxf`/`.lef`), which is required to start a meet. Then optionally load one or more previous entry files or results files as historical athlete/time sources. Auto-detect LENEX type by content: `CLUBS` with `ENTRY` = previous entry; `RESULT` = results; neither = invitation. Show a preview: matched / new / ambiguous athletes with a confirm step. Nothing is written before confirmation.
 3. **Zgłoszenie**: pick a meet. **Matrix**: rows = athletes, columns = disciplines grouped by session. Cell = toggle + time (editable, with a badge for the origin: wynik / poprzednie zgłoszenie / ręcznie). Row counter `x/4`. Cells the athlete is not eligible for are disabled with a reason. Action: "Skopiuj wybór z poprzedniego zgłoszenia".
 4. **Sztafety**: list of relays (name, gender, event, time).
 5. **Eksport**: club contact fields, validation panel (blocking vs warnings), download `.lxf`.

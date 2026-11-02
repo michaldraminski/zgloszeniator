@@ -82,6 +82,16 @@ ul {
   background: #1d4ed8;
 }
 
+.file-picker-disabled {
+  border-color: #94a3b8;
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.file-picker-disabled:hover {
+  background: #94a3b8;
+}
+
 .file-picker:focus-within {
   outline: 3px solid #93c5fd;
   outline-offset: 3px;
@@ -121,6 +131,18 @@ ul {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.privacy-note {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+hr {
+  height: 1px;
+  margin: 1.5rem 0;
+  border: 0;
+  background: #e2e8f0;
 }
 
 .import-result-error {

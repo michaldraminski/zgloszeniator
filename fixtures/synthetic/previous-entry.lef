@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LENEX version="2.0">
+  <MEETS>
+    <MEET name="Synthetic Previous Meet" course="SCM">
+      <AGEDATE type="YEAR" value="2098-12-31" />
+      <SESSIONS>
+        <SESSION number="1">
+          <EVENTS>
+            <EVENT eventid="synthetic-event-1" number="1" gender="F">
+              <SWIMSTYLE name="50m SF" relaycount="0" />
+            </EVENT>
+          </EVENTS>
+        </SESSION>
+      </SESSIONS>
+    </MEET>
+  </MEETS>
+  <CLUBS>
+    <CLUB name="Synthetic Club">
+      <CONTACT name="Synthetic Contact" phone="000" email="contact@example.invalid" />
+      <ATHLETES>
+        <ATHLETE lastname="Swimmer" firstname="Example" birthdate="2012-01-01" gender="F">
+          <ENTRIES>
+            <ENTRY eventid="synthetic-event-1" entrytime="00:00:31.25" />
+          </ENTRIES>
+        </ATHLETE>
+      </ATHLETES>
+      <RELAYS />
+    </CLUB>
+  </CLUBS>
+</LENEX>
