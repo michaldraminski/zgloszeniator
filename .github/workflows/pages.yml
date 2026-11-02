@@ -41,6 +41,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build core package
+        run: pnpm --filter @lenex-entries/core run build
       - name: Lint, typecheck, and test
         run: |
           pnpm -r run lint
