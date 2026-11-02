@@ -64,6 +64,60 @@ ul {
   padding-left: 1.25rem;
 }
 
+.athlete-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.athlete-form label {
+  display: grid;
+  gap: 0.3rem;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.athlete-form input,
+.athlete-form select {
+  width: 100%;
+  min-height: 2.55rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.athlete-form input:focus,
+.athlete-form select:focus {
+  outline: 3px solid #bfdbfe;
+  border-color: #2563eb;
+}
+
+.athlete-form button {
+  min-height: 2.55rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #1d4ed8;
+  border-radius: 0.55rem;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.athlete-form button:hover {
+  background: #1d4ed8;
+}
+
+.form-error {
+  margin: 0.7rem 0 0;
+  color: #b91c1c;
+}
+
 .file-picker {
   display: inline-flex;
   align-items: center;
@@ -334,6 +388,14 @@ hr {
 }
 
 @media (max-width: 700px) {
+  .athlete-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .athlete-form button {
+    grid-column: 1 / -1;
+  }
+
   .entry-planner-header {
     align-items: flex-start;
     flex-direction: column;

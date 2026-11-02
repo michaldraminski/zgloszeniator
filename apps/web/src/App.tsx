@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 import {
   buildAthleteEventOptions,
@@ -11,6 +11,8 @@ import {
   type AthleteEntryOptions,
   type AthleteEventOption,
   type Meet,
+  type Gender,
+  type IncomingAthlete,
   type ParsedLenexDocument,
 } from '@lenex-entries/core';
 
@@ -101,6 +103,14 @@ export default function App() {
   const [historicalFiles, setHistoricalFiles] = useState<HistoricalFile[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [rejectedHistoryFiles, setRejectedHistoryFiles] = useState<RejectedHistoryFile[]>([]);
+  const [localAthletes, setLocalAthletes] = useState<IncomingAthlete[]>([]);
+  const [athleteForm, setAthleteForm] = useState({
+    lastName: '',
+    firstName: '',
+    birthYear: '',
+    gender: 'F' as Gender,
+  });
+  const [athleteFormError, setAthleteFormError] = useState('');
   const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
   const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
   const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
@@ -108,11 +118,24 @@ export default function App() {
     historicalFiles.map(({ document }) => document),
     historicalFiles.map(({ fileName }) => fileName),
   );
+  const rosterByKey = new Map<string, IncomingAthlete>();
+  for (const athlete of [...importedHistory.athletes, ...localAthletes]) {
+    rosterByKey.set(identityKey(athlete), athlete);
+  }
+  const rosterAthletes = [...rosterByKey.values()].sort((left, right) => {
+    const collator = new Intl.Collator('pl', { sensitivity: 'base' });
+    return (
+      collator.compare(left.lastName, right.lastName) ||
+      collator.compare(left.firstName, right.firstName) ||
+      left.birthYear - right.birthYear
+    );
+  });
+  const historyWithRoster = { ...importedHistory, athletes: rosterAthletes };
   const selectedEntryOptions =
     invitationState.kind === 'loaded'
       ? buildAthleteEventOptions(
           invitationState.meet,
-          importedHistory,
+          historyWithRoster,
           new Set(selectedAthleteKeys),
         )
       : [];
@@ -161,6 +184,33 @@ export default function App() {
       ...current,
       [athleteKey]: { ...current[athleteKey], [eventId]: value },
     }));
+  }
+
+  function addAthlete(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const birthYear = Number(athleteForm.birthYear);
+    const athlete: IncomingAthlete = {
+      lastName: athleteForm.lastName.trim(),
+      firstName: athleteForm.firstName.trim(),
+      birthYear,
+      gender: athleteForm.gender,
+    };
+
+    if (!athlete.lastName || !athlete.firstName || !Number.isSafeInteger(birthYear)) {
+      setAthleteFormError(pl.roster.invalidAthlete);
+      return;
+    }
+
+    const athleteKey = identityKey(athlete);
+    if (rosterByKey.has(athleteKey)) {
+      setAthleteFormError(pl.roster.duplicateAthlete);
+      return;
+    }
+
+    setLocalAthletes((current) => [...current, athlete]);
+    setSelectedAthleteKeys((current) => [...current, athleteKey]);
+    setAthleteFormError('');
+    setAthleteForm({ lastName: '', firstName: '', birthYear: '', gender: 'F' });
   }
 
   async function loadInvitation(file: File): Promise<void> {
@@ -223,7 +273,53 @@ export default function App() {
 
       <section className="panel">
         <h2>{pl.sections.roster}</h2>
-        <p>{pl.appDescription}</p>
+        <p>{pl.roster.description}</p>
+        <form className="athlete-form" onSubmit={addAthlete}>
+          <label>
+            <span>{pl.roster.lastName}</span>
+            <input
+              required
+              value={athleteForm.lastName}
+              onChange={(event) => setAthleteForm((current) => ({ ...current, lastName: event.target.value }))}
+            />
+          </label>
+          <label>
+            <span>{pl.roster.firstName}</span>
+            <input
+              required
+              value={athleteForm.firstName}
+              onChange={(event) => setAthleteForm((current) => ({ ...current, firstName: event.target.value }))}
+            />
+          </label>
+          <label>
+            <span>{pl.roster.birthYear}</span>
+            <input
+              required
+              type="number"
+              inputMode="numeric"
+              min="1900"
+              max="2100"
+              step="1"
+              value={athleteForm.birthYear}
+              onChange={(event) => setAthleteForm((current) => ({ ...current, birthYear: event.target.value }))}
+            />
+          </label>
+          <label>
+            <span>{pl.roster.gender}</span>
+            <select
+              value={athleteForm.gender}
+              onChange={(event) => setAthleteForm((current) => ({ ...current, gender: event.target.value as Gender }))}
+            >
+              <option value="F">{pl.roster.genderFemale}</option>
+              <option value="M">{pl.roster.genderMale}</option>
+            </select>
+          </label>
+          <button type="submit">{pl.roster.addAthlete}</button>
+        </form>
+        {athleteFormError && <p className="form-error" role="alert">{athleteFormError}</p>}
+        {localAthletes.length > 0 && (
+          <p className="privacy-note">{pl.roster.sessionOnly} {localAthletes.length}</p>
+        )}
       </section>
 
       <section className="panel">
@@ -362,7 +458,7 @@ export default function App() {
         )}
       </section>
 
-      {invitationState.kind === 'loaded' && historicalFiles.length > 0 && (
+      {invitationState.kind === 'loaded' && (historicalFiles.length > 0 || localAthletes.length > 0) && (
         <section className="panel entry-planner">
           <div className="entry-planner-header">
             <div>
@@ -375,7 +471,7 @@ export default function App() {
             </p>
           </div>
 
-          {importedHistory.athletes.length === 0 ? (
+          {rosterAthletes.length === 0 ? (
             <p>{pl.fileImport.noAthletes}</p>
           ) : (
             <>
@@ -383,7 +479,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() =>
-                    setSelectedAthleteKeys(importedHistory.athletes.map((athlete) => identityKey(athlete)))
+                    setSelectedAthleteKeys(rosterAthletes.map((athlete) => identityKey(athlete)))
                   }
                 >
                   {pl.fileImport.selectAllAthletes}
@@ -395,7 +491,7 @@ export default function App() {
 
               <div className="entry-planner-grid">
                 <div className="athlete-list" aria-label={pl.fileImport.athleteListLabel}>
-                  {importedHistory.athletes.map((athlete) => {
+                  {rosterAthletes.map((athlete) => {
                     const athleteKey = identityKey(athlete);
                     return (
                     <label className="athlete-choice" key={athleteKey}>
