@@ -54,6 +54,7 @@ export interface ParsedRelay {
   timeCs: number | null;
   ageMin?: number;
   ageMax?: number;
+  members: Array<{ position: number; athlete: IncomingAthlete }>;
 }
 
 export interface ParsedClub {
@@ -383,18 +384,40 @@ export function parseEntryFile(xml: string): ParsedEntryFile {
     const contactNode = child(club, 'CONTACT');
     const athletesNode = child(club, 'ATHLETES');
     const relaysNode = child(club, 'RELAYS');
-    const athletes = (athletesNode ? children(athletesNode.ATHLETE) : []).map((athlete) => ({
-      firstName: requiredAttr(athlete, 'firstname', 'ATHLETE'),
-      lastName: requiredAttr(athlete, 'lastname', 'ATHLETE'),
-      birthYear: parseBirthYear(attr(athlete, 'birthdate'), 'ATHLETE'),
-      gender: parseAthleteGender(attr(athlete, 'gender')),
-      entries: parseParsedEntries(athlete, eventMap),
-    }));
+    const athleteRecords = athletesNode ? children(athletesNode.ATHLETE) : [];
+    const athleteByLocalId = new Map<string, IncomingAthlete>();
+    const athletes = athleteRecords.map((athleteRecord) => {
+      const athlete: IncomingAthlete = {
+        firstName: requiredAttr(athleteRecord, 'firstname', 'ATHLETE'),
+        lastName: requiredAttr(athleteRecord, 'lastname', 'ATHLETE'),
+        birthYear: parseBirthYear(attr(athleteRecord, 'birthdate'), 'ATHLETE'),
+        gender: parseAthleteGender(attr(athleteRecord, 'gender')),
+      };
+      const localAthleteId = attr(athleteRecord, 'athleteid');
+      if (localAthleteId) {
+        athleteByLocalId.set(localAthleteId, athlete);
+      }
+      return { ...athlete, entries: parseParsedEntries(athleteRecord, eventMap) };
+    });
     const relayEvents = new Map(
       meet.events.map((event) => [event.eventId, event]),
     );
     const relays = (relaysNode ? children(relaysNode.RELAY) : []).flatMap((relay) => {
       const eventEntries = parseParsedEntries(relay, eventMap);
+      const positionsNode = child(relay, 'RELAYPOSITIONS');
+      const members = (positionsNode ? children(positionsNode.RELAYPOSITION) : [])
+        .map((position) => {
+          const localAthleteId = requiredAttr(position, 'athleteid', 'RELAYPOSITION');
+          const athlete = athleteByLocalId.get(localAthleteId);
+          if (!athlete) {
+            throw new LenexParseError(`RELAYPOSITION references unknown athleteid: ${localAthleteId}`);
+          }
+          return {
+            position: integerAttr(position, 'number', 'RELAYPOSITION', { required: true }),
+            athlete,
+          };
+        })
+        .sort((left, right) => left.position - right.position);
       return eventEntries.map((entry) => ({
         ...(() => {
           const event = relayEvents.get(entry.eventId);
@@ -412,6 +435,7 @@ export function parseEntryFile(xml: string): ParsedEntryFile {
         ...(attr(relay, 'agemax') !== undefined
           ? { ageMax: integerAttr(relay, 'agemax', 'RELAY') }
           : {}),
+        members,
         ...entry,
       }));
     });

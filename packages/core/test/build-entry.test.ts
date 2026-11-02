@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildEntryFile,
+  identityKey,
   parseEntryFile,
   parseInvitation,
   readLxf,
@@ -171,4 +172,143 @@ describe('buildEntryFile', () => {
       relays: [{ ...draft.relays[0], eventId: 'synthetic-relay-event', gender: 'X' as const, timeCs: -1 }],
     })).toThrow('Invalid relay time');
   });
+
+  it('optionally adds relay members as athletes and writes ordered RELAYPOSITIONS', () => {
+    const meet = parseInvitation(invitationXml);
+    const athlete = sampleDraft.athletes[0];
+    const archive = buildEntryFile(meet, {
+      ...sampleDraft,
+      athletes: [{ ...athlete, entries: [] }],
+      relays: [{
+        eventId: 'synthetic-relay-event',
+        number: 1,
+        name: 'Synthetic Senior',
+        gender: 'X',
+        ageMin: -1,
+        ageMax: -1,
+        timeCs: 12100,
+        memberAthleteKeys: [identityKey(athlete)],
+      }],
+    });
+    const { xml } = readLxf(archive);
+    const parsed = parseEntryFile(xml);
+
+    expect(xml).toContain('<RELAYPOSITIONS>');
+    expect(xml).toContain('<RELAYPOSITION number="1" athleteid="1" />');
+    expect(parsed.clubs[0].athletes).toHaveLength(1);
+    expect(parsed.clubs[0].athletes[0].entries).toHaveLength(0);
+    expect(parsed.clubs[0].relays[0].members).toEqual([
+      {
+        position: 1,
+        athlete: { firstName: 'Ada', lastName: 'Przykładowa', birthYear: 2012, gender: 'F' },
+      },
+    ]);
+  });
+
+  it('rejects duplicate or excess relay member assignments', () => {
+    const meet = parseInvitation(invitationXml);
+    const athlete = sampleDraft.athletes[0];
+    const baseRelay = {
+      eventId: 'synthetic-relay-event',
+      number: 1,
+      name: 'Synthetic Senior',
+      gender: 'X' as const,
+      timeCs: 12100,
+    };
+    const draft = (memberAthleteKeys: string[]) => ({
+      ...sampleDraft,
+      athletes: [{ ...athlete, entries: [] }],
+      relays: [{ ...baseRelay, memberAthleteKeys }],
+    });
+
+    expect(() => buildEntryFile(meet, draft([identityKey(athlete), identityKey(athlete)])))
+      .toThrow('Relay athlete cannot occupy multiple positions');
+    const relayOnlyAthletes = Array.from({ length: 5 }, (_, index) => ({
+      ...athlete,
+      firstName: `Swimmer ${index + 1}`,
+      entries: [],
+    }));
+    expect(() => buildEntryFile(meet, {
+      ...sampleDraft,
+      athletes: relayOnlyAthletes,
+      relays: [{
+        ...baseRelay,
+        memberAthleteKeys: relayOnlyAthletes.map((candidate) => identityKey(candidate)),
+      }],
+    })).toThrow('Too many relay members');
+  });
+
+  it('can serialize selected relay members as optional ordered positions', () => {
+    const meet = parseInvitation(invitationXml);
+    const athlete = sampleDraft.athletes[0];
+    const archive = buildEntryFile(meet, {
+      ...sampleDraft,
+      athletes: [{ ...athlete, entries: [] }],
+      relays: [{
+        eventId: 'synthetic-relay-event',
+        number: 1,
+        name: 'Synthetic Senior',
+        gender: 'X',
+        timeCs: 12100,
+        memberAthleteKeys: [identityKey(athlete)],
+      }],
+    });
+    const { xml } = readLxf(archive);
+    const parsed = parseEntryFile(xml);
+
+    expect(xml).toContain('<ATHLETE lastname="Przykładowa" firstname="Ada" birthdate="2012-01-01" gender="F" athleteid="1">');
+    expect(xml).toContain('<RELAYPOSITION number="1" athleteid="1" />');
+    expect(parsed.clubs[0].athletes[0].entries).toHaveLength(0);
+    expect(parsed.clubs[0].relays[0].members).toEqual([
+      {
+        position: 1,
+        athlete: { firstName: 'Ada', lastName: 'Przykładowa', birthYear: 2012, gender: 'F' },
+      },
+    ]);
+  });
+
+  it('rejects relay members with the wrong gender for a single-gender relay', () => {
+      const meet = parseInvitation(invitationXml);
+      const femaleRelayMeet = {
+        ...meet,
+        events: meet.events.map((event) =>
+          event.eventId === 'synthetic-relay-event' ? { ...event, gender: 'M' as const } : event,
+        ),
+      };
+      const athlete = sampleDraft.athletes[0];
+
+      expect(() => buildEntryFile(femaleRelayMeet, {
+        ...sampleDraft,
+        athletes: [{ ...athlete, entries: [] }],
+        relays: [{
+          eventId: 'synthetic-relay-event',
+          number: 1,
+          name: 'Synthetic Relay',
+          gender: 'M',
+          timeCs: 12100,
+          memberAthleteKeys: [identityKey(athlete)],
+        }],
+      })).toThrow('Relay member gender does not match the relay event');
+    });
+
+  it('keeps individual entries for athletes who are also assigned to relay positions', () => {
+      const meet = parseInvitation(invitationXml);
+      const athlete = sampleDraft.athletes[0];
+      const archive = buildEntryFile(meet, {
+        ...sampleDraft,
+        athletes: [athlete],
+        relays: [{
+          eventId: 'synthetic-relay-event',
+          number: 1,
+          name: 'Synthetic Senior',
+          gender: 'X',
+          timeCs: 12100,
+          memberAthleteKeys: [identityKey(athlete)],
+        }],
+      });
+      const parsed = parseEntryFile(readLxf(archive).xml);
+
+      expect(parsed.clubs[0].athletes[0].entries).toHaveLength(1);
+      expect(parsed.clubs[0].relays[0].members[0].athlete.firstName).toBe('Ada');
+    });
 });

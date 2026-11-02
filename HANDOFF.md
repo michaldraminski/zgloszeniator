@@ -83,7 +83,7 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
   - `athleteid` is a local counter starting at 1. There is no licence number, no nation.
   - Children: `ENTRIES > ENTRY(eventid, entrytime)`. There is no `entrycourse`.
 - `RELAY`: `gender`, `number`, `name`, optional `agemin`/`agemax`, `relayid`, `ENTRIES > ENTRY(eventid, entrytime)`. No `RELAYPOSITIONS`.
-- The Olecko ready entry contains 11 relay teams, each with a relay event reference and entry time. `number="1"` is reused across categories; do not assume it is unique per event. Relay-position membership is intentionally omitted from generated files for now.
+- The Olecko ready entry contains 11 relay teams, each with a relay event reference and entry time. `number="1"` is reused across categories; do not assume it is unique per event. That ready file contains no `RELAYPOSITIONS`; optional positions are emitted as `RELAYPOSITION(number, athleteid)` when selected, but should be verified in Splash before relying on this mode.
 - Entry time format: `hh:mm:ss.cc`, for example `00:04:23.33`.
 - Many times end in `.00` (hand-typed estimates). So a time needs a **source**.
 
@@ -299,7 +299,7 @@ UX principles: keyboard-first matrix (arrows, space to toggle, type to edit time
 9. GitHub Pages serves a project site under `/<repo-name>/`. Set Vite `base` from an env variable (`/` for a custom domain). Avoid client-side routes that need server fallback: use hash routing or a single view with state.
 10. Historical time priority: choose a matching result before any previous-entry time; among results, prefer the latest ISO `MEET@date`. If either date is missing or dates are equal, later import order is the tie-breaker. Confirm that organizers consistently provide `MEET@date` before relying on date ordering for all files.
 11. The Olecko results export omits `SWIMSTYLE@name`. Recover its discipline labels only from a prior entry with the same non-empty city, course, and complete unique `(session, event number, gender, relay count)` schedule. If no unique compatible label inventory exists, keep those results unresolved rather than guessing.
-12. Optional relay-member assignment requires a validated `RELAYPOSITIONS/RELAYPOSITION` schema and an organizer-import check. The supplied Olecko entry has no relay positions, so the current generator exports relay team/category, event, and time only.
+12. The supplied Olecko entry has no relay positions. The app now supports optional `RELAYPOSITIONS/RELAYPOSITION(number, athleteid)` assignments to club-local athlete IDs; validate an assigned-team export in Splash before relying on member positions in production.
 
 ---
 

@@ -1,5 +1,6 @@
 import { encodeWindows1250, decodeWindows1250 } from './encoding';
 import { ageAt, resolveEvent } from './entry-options';
+import { identityKey } from './lenex';
 import type { Meet, Gender, EventGender } from './lenex';
 import { formatTime, parseTime } from './time';
 import { writeLxf } from './container';
@@ -20,6 +21,7 @@ export interface EntryDraftRelay {
   timeCs: number;
   ageMin?: number;
   ageMax?: number;
+  memberAthleteKeys?: string[];
 }
 
 export interface EntryFileDraft {
@@ -60,6 +62,7 @@ function xmlAttribute(value: string): string {
 
 function validateDraft(meet: Meet, draft: EntryFileDraft): void {
   const relays = draft.relays ?? [];
+  const relayMemberKeys = new Set(relays.flatMap((relay) => relay.memberAthleteKeys ?? []));
   if (!draft.club.name.trim()) {
     throw new EntryFileGenerationError('Club name is required');
   }
@@ -85,7 +88,7 @@ function validateDraft(meet: Meet, draft: EntryFileDraft): void {
       throw new EntryFileGenerationError('Duplicate athlete in entry draft');
     }
     athleteKeys.add(athleteKey);
-    if (athlete.entries.length === 0) {
+    if (athlete.entries.length === 0 && !relayMemberKeys.has(athleteKey)) {
       throw new EntryFileGenerationError('Each included athlete must have at least one entry');
     }
     if (meet.maxEntriesPerAthlete !== undefined && athlete.entries.length > meet.maxEntriesPerAthlete) {
@@ -155,19 +158,40 @@ function validateDraft(meet: Meet, draft: EntryFileDraft): void {
     ) {
       throw new EntryFileGenerationError('Relay age minimum exceeds maximum');
     }
+    const memberKeys = relay.memberAthleteKeys ?? [];
+    if (memberKeys.length > event.relayCount) {
+      throw new EntryFileGenerationError('Too many relay members');
+    }
+    if (new Set(memberKeys).size !== memberKeys.length) {
+      throw new EntryFileGenerationError('Relay athlete cannot occupy multiple positions');
+    }
+    const rosterKeys = new Set(draft.athletes.map((athlete) => identityKey(athlete)));
+    if (memberKeys.some((key) => !rosterKeys.has(key))) {
+      throw new EntryFileGenerationError('Relay member is not in the roster');
+    }
+    if (event.gender !== 'X') {
+      const rosterByKey = new Map(draft.athletes.map((athlete) => [identityKey(athlete), athlete]));
+      if (memberKeys.some((key) => rosterByKey.get(key)?.gender !== event.gender)) {
+        throw new EntryFileGenerationError('Relay member gender does not match the relay event');
+      }
+    }
   }
 }
 
 function renderClub(draft: EntryFileDraft): string {
+  const athleteIds = new Map(
+    draft.athletes.map((athlete, index) => [identityKey(athlete), index + 1]),
+  );
   const athletesXml = draft.athletes.map((athlete, athleteIndex) => {
     const entriesXml = athlete.entries.map((entry) =>
       `          <ENTRY eventid="${xmlAttribute(entry.eventId)}" entrytime="${formatTime(entry.timeCs)}" />`,
     ).join('\r\n');
+    const entriesXmlBlock = athlete.entries.length > 0
+      ? ['          <ENTRIES>', entriesXml, '          </ENTRIES>']
+      : ['          <ENTRIES />'];
     return [
       `        <ATHLETE lastname="${xmlAttribute(athlete.lastName.trim())}" firstname="${xmlAttribute(athlete.firstName.trim())}" birthdate="${athlete.birthYear}-01-01" gender="${athlete.gender}" athleteid="${athleteIndex + 1}">`,
-      '          <ENTRIES>',
-      entriesXml,
-      '          </ENTRIES>',
+      ...entriesXmlBlock,
       '        </ATHLETE>',
     ].join('\r\n');
   }).join('\r\n');
@@ -176,11 +200,22 @@ function renderClub(draft: EntryFileDraft): string {
   const relaysXml = relayList.map((relay, relayIndex) => {
     const ageMin = relay.ageMin === undefined ? '' : ` agemin="${relay.ageMin}"`;
     const ageMax = relay.ageMax === undefined ? '' : ` agemax="${relay.ageMax}"`;
+    const memberAthleteKeys = relay.memberAthleteKeys ?? [];
+    const positionsXml = memberAthleteKeys.map((athleteKey, positionIndex) => {
+      const athleteId = athleteIds.get(athleteKey);
+      if (!athleteId) {
+        throw new EntryFileGenerationError('Relay member is not in the roster');
+      }
+      return `          <RELAYPOSITION number="${positionIndex + 1}" athleteid="${athleteId}" />`;
+    }).join('\r\n');
     return [
       `        <RELAY gender="${relay.gender}" number="${relay.number}" name="${xmlAttribute(relay.name.trim())}"${ageMin}${ageMax} relayid="${relayIndex + 1}">`,
       '          <ENTRIES>',
       `            <ENTRY eventid="${xmlAttribute(relay.eventId)}" entrytime="${formatTime(relay.timeCs)}" />`,
       '          </ENTRIES>',
+      ...(memberAthleteKeys.length > 0
+        ? ['          <RELAYPOSITIONS>', positionsXml, '          </RELAYPOSITIONS>']
+        : []),
       '        </RELAY>',
     ].join('\r\n');
   }).join('\r\n');

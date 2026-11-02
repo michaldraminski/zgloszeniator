@@ -117,6 +117,23 @@ describe('LENEX parsers', () => {
     });
   });
 
+  it('parses optional relay positions by local athlete ID', () => {
+    const xmlWithPosition = entryXml
+      .replace('firstname="Swimmer" birthdate=', 'firstname="Swimmer" athleteid="1" birthdate=')
+      .replace(
+        /<\/ENTRIES>\s*<\/RELAY>/,
+        '</ENTRIES><RELAYPOSITIONS><RELAYPOSITION number="1" athleteid="1" /></RELAYPOSITIONS></RELAY>',
+      );
+    const parsed = parseEntryFile(xmlWithPosition);
+
+    expect(parsed.clubs[0].relays[0].members).toEqual([
+      {
+        position: 1,
+        athlete: { firstName: 'Swimmer', lastName: 'Example', birthYear: 2012, gender: 'F' },
+      },
+    ]);
+  });
+
   it('finds previous-entry CLUBS nested under MEET', () => {
     const xml = `<?xml version="1.0"?>
 <LENEX version="2.0"><MEETS><MEET name="Nested Meet" course="SCM">
