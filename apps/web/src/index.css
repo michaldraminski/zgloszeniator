@@ -363,6 +363,36 @@ ul {
   outline-offset: 3px;
 }
 
+.backup-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.backup-actions button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid #1d4ed8;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #1d4ed8;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.backup-actions button:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.backup-actions button:disabled {
+  border-color: #94a3b8;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
 .file-input {
   position: absolute;
   width: 1px;

@@ -263,7 +263,7 @@ UX principles: keyboard-first matrix (arrows, space to toggle, type to edit time
   *AC*: output declares `version="2.0"` and `Windows-1250`. Bytes decode with `TextDecoder('windows-1250')`. Parsing the output gives a model semantically equal to the entry fixture.
 - **M5 Storage + roster UI**: Dexie schema with versioned migrations, roster CRUD, CSV/paste import, JSON backup with zod.
   *AC*: reload keeps data. Backup export then import is lossless.
-  *Progress*: The current invitation, imported history, manually added athletes, club details, relay drafts, athlete/event selection and edited times autosave to IndexedDB via Dexie. Persistent roster CRUD and user-owned JSON backup/restore remain outstanding; browser storage can still be evicted.
+  *Progress*: The current invitation, imported history, manually added athletes, club details, relay drafts, athlete/event selection and edited times autosave to IndexedDB via Dexie. Versioned JSON backup export/import is validated with Zod, and users can request persistent browser storage. Persistent roster management remains outstanding; browser storage can still be evicted, so backups remain important.
 - **M6 Import UI**: drop zone, detection, match preview, confirmation.
   *AC*: importing entry fixture then results fixture gives 35 athletes, 0 duplicates, observations with `source.kind = 'result'`.
 - **M7 Entry matrix + export + relays**: full flow from invitation to download.

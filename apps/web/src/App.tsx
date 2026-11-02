@@ -32,6 +32,7 @@ import {
   type HistoricalDocument,
   type PersistedRelayDraft,
 } from './db/app-snapshot';
+import { BackupValidationError, parseAppBackup, serializeAppBackup } from './db/app-backup';
 
 type InvitationImportState =
   | { kind: 'idle' }
@@ -131,6 +132,8 @@ function getSuggestedTimeLabel(option: AthleteEventOption): string {
 export default function App() {
   const [persistenceReady, setPersistenceReady] = useState(false);
   const [persistenceStatus, setPersistenceStatus] = useState<'loading' | 'saving' | 'saved' | 'error'>('loading');
+  const [backupMessage, setBackupMessage] = useState('');
+  const [storagePersistence, setStoragePersistence] = useState<'unknown' | 'granted' | 'not-granted' | 'unsupported'>('unknown');
   const [invitationState, setInvitationState] = useState<InvitationImportState>({ kind: 'idle' });
   const [historicalFiles, setHistoricalFiles] = useState<HistoricalFile[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -191,6 +194,16 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.storage?.persisted) {
+      setStoragePersistence('unsupported');
+      return;
+    }
+    void navigator.storage.persisted().then((persisted) => {
+      setStoragePersistence(persisted ? 'granted' : 'not-granted');
+    }).catch(() => setStoragePersistence('unsupported'));
   }, []);
 
   useEffect(() => {
@@ -533,6 +546,69 @@ export default function App() {
     setAthleteForm({ lastName: '', firstName: '', birthYear: '', gender: 'F' });
   }
 
+  function exportBackup(): void {
+    const snapshot = {
+      invitation: invitationState.kind === 'loaded'
+        ? { fileName: invitationState.fileName, meet: invitationState.meet }
+        : null,
+      historicalFiles,
+      localAthletes,
+      clubDetails,
+      relayDrafts,
+      selectedAthleteKeys,
+      selectedEventIds,
+      editedTimes,
+    };
+    const blob = new Blob([serializeAppBackup(snapshot)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lenex-entries-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setBackupMessage(pl.fileImport.backupExported);
+  }
+
+  async function importBackup(file: File): Promise<void> {
+    try {
+      const snapshot = parseAppBackup(await file.text());
+      await saveAppSnapshot(snapshot);
+      setInvitationState(snapshot.invitation
+        ? { kind: 'loaded', ...snapshot.invitation }
+        : { kind: 'idle' });
+      setHistoricalFiles(snapshot.historicalFiles);
+      setLocalAthletes(snapshot.localAthletes);
+      setClubDetails(snapshot.clubDetails);
+      setRelayDrafts(snapshot.relayDrafts);
+      setSelectedAthleteKeys(snapshot.selectedAthleteKeys);
+      setSelectedEventIds(snapshot.selectedEventIds);
+      setEditedTimes(snapshot.editedTimes);
+      setGeneratedDownload(null);
+      setGenerationError('');
+      setGenerationDiagnostic('');
+      setPersistenceStatus('saved');
+      setBackupMessage(pl.fileImport.backupImported);
+    } catch (error) {
+      setBackupMessage(error instanceof BackupValidationError
+        ? pl.fileImport.backupInvalid
+        : pl.fileImport.backupError);
+    }
+  }
+
+  async function requestPersistentStorage(): Promise<void> {
+    if (!navigator.storage?.persist) {
+      setStoragePersistence('unsupported');
+      return;
+    }
+    try {
+      setStoragePersistence(await navigator.storage.persist() ? 'granted' : 'not-granted');
+    } catch {
+      setStoragePersistence('not-granted');
+    }
+  }
+
   async function loadInvitation(file: File): Promise<void> {
     setInvitationState({ kind: 'loading', fileName: file.name });
 
@@ -660,6 +736,41 @@ export default function App() {
         <p className={`privacy-note persistence-${persistenceStatus}`} role="status">
           {pl.fileImport.persistence[persistenceStatus]}
         </p>
+        <div className="backup-actions">
+          <button type="button" disabled={!persistenceReady} onClick={exportBackup}>
+            {pl.fileImport.exportBackup}
+          </button>
+          <label className={`file-picker${persistenceReady ? '' : ' file-picker-disabled'}`}>
+            <span>{pl.fileImport.importBackup}</span>
+            <input
+              className="file-input"
+              type="file"
+              accept="application/json,.json"
+              disabled={!persistenceReady}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = '';
+                if (file) void importBackup(file);
+              }}
+            />
+          </label>
+          {backupMessage && <p className="privacy-note" role="status">{backupMessage}</p>}
+        </div>
+        {storagePersistence === 'granted' ? (
+          <p className="privacy-note" role="status">{pl.fileImport.storageProtected}</p>
+        ) : (
+          <div className="backup-actions">
+            <button type="button" onClick={() => void requestPersistentStorage()}>
+              {pl.fileImport.requestStorageProtection}
+            </button>
+            {storagePersistence === 'unsupported' && (
+              <p className="privacy-note">{pl.fileImport.storageProtectionUnavailable}</p>
+            )}
+            {storagePersistence === 'not-granted' && (
+              <p className="privacy-note">{pl.fileImport.storageNotProtected}</p>
+            )}
+          </div>
+        )}
         <p className="privacy-note">{pl.fileImport.timePriorityHint}</p>
         <label
           className={`file-picker${invitationState.kind !== 'loaded' ? ' file-picker-disabled' : ''}`}
