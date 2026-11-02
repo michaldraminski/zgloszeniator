@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { decodeWindows1250, encodeWindows1250, formatTime, parseTime } from '../src/index';
+import {
+  decodeWindows1250,
+  DEFAULT_OUTPUT_FORMAT,
+  encodeWindows1250,
+  formatTime,
+  normalizeOutputFormat,
+  parseTime,
+} from '../src/index';
 
 describe('time utilities', () => {
   it('parses and formats a swimming time', () => {
@@ -19,5 +26,12 @@ describe('time utilities', () => {
 
     expect(decodeWindows1250(bytes)).toBe(text);
     expect(bytes.length).toBeGreaterThan(0);
+  });
+
+  it('defaults to the safer LENEX 2.0 output and accepts the override', () => {
+    expect(DEFAULT_OUTPUT_FORMAT).toBe('lenex2-windows1250');
+    expect(normalizeOutputFormat(undefined)).toBe(DEFAULT_OUTPUT_FORMAT);
+    expect(normalizeOutputFormat('lenex3-utf8')).toBe('lenex3-utf8');
+    expect(normalizeOutputFormat('unknown')).toBe(DEFAULT_OUTPUT_FORMAT);
   });
 });

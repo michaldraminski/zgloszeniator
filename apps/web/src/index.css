@@ -63,3 +63,20 @@ h1 {
 ul {
   padding-left: 1.25rem;
 }
+
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+
+.choice-row input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.format-note {
+  margin-top: 0.75rem;
+  color: #334155;
+}

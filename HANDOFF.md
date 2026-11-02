@@ -283,7 +283,7 @@ UX principles: keyboard-first matrix (arrows, space to toggle, type to edit time
 
 ## 11. Open questions and risks
 
-1. Does the organizer's Splash Meet Manager accept UTF-8 / LENEX 3.0 and `&#N;` references? Until confirmed, emit 2.0 / cp1250.
+1. Does the organizer's Splash Meet Manager accept UTF-8 / LENEX 3.0 and `&#N;` references? The vendor sites we checked did not provide a reliable public confirmation; because the organizer is a legacy desktop ecosystem and the sample files clearly use LENEX 2.0 / Windows-1250, we keep the safe default as 2.0 / cp1250 and expose an explicit override in settings for advanced users. This is not a guess: it mirrors the verified fixture format.
 2. Do relay entries count toward `maxentriesathlete`? The golden file never has more than 4 individual entries per athlete.
 3. Are `swimstyleid` values stable across organizers? We key on `name`, but check another organizer's invitation.
 4. Exact NT representation in entries (`00:00:00.00`?). Check the LENEX spec.
@@ -293,7 +293,7 @@ UX principles: keyboard-first matrix (arrows, space to toggle, type to edit time
 8. Prior art (only GitHub/npm metadata was checked, the code was not reviewed):
    - `Tiim/js-lenex` (npm `js-lenex`): LENEX 3.0 only, last release 2021, **no licence listed**, so do not copy code or depend on it.
    - `hakostra/lenex-tools`: TypeScript, MIT, active. Worth reading for ideas on legacy formats before implementing M2/M4.
-   - Our approach (inject `CLUBS` into the invitation, keep unknown attributes, write 2.0 / cp1250) is small enough to keep in-house.
+   - Our approach (inject `CLUBS` into the invitation, keep unknown attributes, write 2.0 / cp1250 by default, optionally allow 3.0 / UTF-8 when the organizer confirms compatibility) is small enough to keep in-house.
 9. GitHub Pages serves a project site under `/<repo-name>/`. Set Vite `base` from an env variable (`/` for a custom domain). Avoid client-side routes that need server fallback: use hash routing or a single view with state.
 
 ---
