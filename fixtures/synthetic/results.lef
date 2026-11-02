@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LENEX version="3.0">
   <MEETS>
-    <MEET name="Synthetic Results Meet" course="SCM" status="OFFICIAL">
+    <MEET name="Synthetic Results Meet" course="SCM" date="2026-10-24" status="OFFICIAL">
       <SESSIONS>
         <SESSION number="1">
           <EVENTS>

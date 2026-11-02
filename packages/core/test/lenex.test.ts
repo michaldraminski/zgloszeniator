@@ -212,6 +212,12 @@ describe('LENEX parsers', () => {
       timeCs: 2950,
       source: { kind: 'result', meetDate: '2026-10-20' },
     });
+
+    const entryOnlyHistory = collectImportedHistory([parseLenexDocument(entryXml)]);
+    expect(suggestImportedTime(entryOnlyHistory, key, '50m SF', 'SCM')).toMatchObject({
+      timeCs: 3125,
+      source: { kind: 'entry' },
+    });
   });
 
   it('builds age-eligible individual event choices with suggested history times', () => {

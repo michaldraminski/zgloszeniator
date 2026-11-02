@@ -151,3 +151,192 @@ hr {
   color: #991b1b;
 }
 
+.import-result details {
+  margin-top: 0.5rem;
+  color: #7f1d1d;
+}
+
+.import-result details code {
+  display: block;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+}
+
+.entry-planner-header,
+.selection-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.entry-planner-header h2 {
+  margin-bottom: 0.2rem;
+}
+
+.selection-counts {
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.selection-actions {
+  justify-content: flex-start;
+  margin: 1rem 0;
+}
+
+.selection-actions button {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  cursor: pointer;
+}
+
+.selection-actions button:hover {
+  background: #f1f5f9;
+}
+
+.entry-planner-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.8fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.athlete-list {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 36rem;
+  overflow: auto;
+  padding: 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.athlete-choice {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.55rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.athlete-choice:hover {
+  background: #f1f5f9;
+}
+
+.athlete-choice input,
+.discipline-option label input {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+}
+
+.athlete-choice span {
+  display: grid;
+  font-weight: 600;
+}
+
+.athlete-choice small {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.athlete-entry-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.athlete-entry-card {
+  min-width: 0;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.athlete-entry-card legend {
+  padding: 0 0.35rem;
+  font-weight: 700;
+}
+
+.discipline-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.65rem;
+}
+
+.discipline-option {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.6rem;
+}
+
+.discipline-option label {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.time-input {
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+.time-input:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.time-input-invalid {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.time-source {
+  color: #475569;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.time-error {
+  color: #b91c1c;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .entry-planner-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .entry-planner-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .athlete-list {
+    max-height: 18rem;
+  }
+}
+

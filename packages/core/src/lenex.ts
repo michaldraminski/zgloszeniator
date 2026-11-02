@@ -252,6 +252,9 @@ function parseMeet(xml: string, meetRecord: XmlRecord, requireAgeDate = true): M
   if (ageDateType && ageDateType !== 'YEAR') {
     throw new LenexParseError(`Unsupported AGEDATE type: ${ageDateType}`);
   }
+  if (requireAgeDate && ageDateValue && !/^\d{4}(?:-\d{2}-\d{2})?$/.test(ageDateValue)) {
+    throw new LenexParseError(`Invalid AGEDATE@value: ${ageDateValue}`);
+  }
 
   const sessions = child(meetRecord, 'SESSIONS');
   const events: MeetEvent[] = [];

@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 
-import { collectImportedHistory, parseLenexDocument } from '../src/index';
+import { collectImportedHistory, parseLenexDocument, readLxf } from '../src/index';
 
 const syntheticDir = path.resolve(__dirname, '../../../fixtures/synthetic');
 
@@ -22,5 +23,12 @@ describe('synthetic import fixtures', () => {
     expect(history.athletes).toHaveLength(1);
     expect(history.observations).toHaveLength(2);
     expect(history.observations.map((observation) => observation.timeCs)).toEqual([3125, 2990]);
+  });
+
+  it('reads and parses results from a ZIP-backed .lxf container', () => {
+    const bytes = zipSync({ 'results.lef': new TextEncoder().encode(readFixture('results.lef')) });
+    const { xml } = readLxf(bytes);
+
+    expect(parseLenexDocument(xml).kind).toBe('results');
   });
 });
