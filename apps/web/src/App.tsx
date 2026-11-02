@@ -26,14 +26,18 @@ import { pl } from './i18n/pl';
 import { filterAthletes } from './roster';
 import { relayMemberKeys, setRelayMemberAtPosition, toggleRelayMemberAssignment } from './relay-draft';
 import { normalizeTimeInput } from './time-input';
+import {
+  loadAppSnapshot,
+  saveAppSnapshot,
+  type HistoricalDocument,
+  type PersistedRelayDraft,
+} from './db/app-snapshot';
 
 type InvitationImportState =
   | { kind: 'idle' }
   | { kind: 'loading'; fileName: string }
   | { kind: 'loaded'; fileName: string; meet: Meet }
   | { kind: 'error'; fileName: string; reason: 'invalid' | 'wrong-type'; diagnostic?: string };
-
-type HistoricalDocument = Exclude<ParsedLenexDocument, { kind: 'invitation' }>;
 
 interface HistoricalFile {
   fileName: string;
@@ -61,13 +65,6 @@ interface RelayChoice {
   ageMin?: number;
   ageMax?: number;
   categoryName: string;
-}
-
-interface RelayDraftRow {
-  key: string;
-  relay: EntryDraftRelay;
-  assignMembers: boolean;
-  memberAthleteKeys: Array<string | null>;
 }
 
 async function parseFile(file: File): Promise<ParsedLenexDocument> {
@@ -132,6 +129,8 @@ function getSuggestedTimeLabel(option: AthleteEventOption): string {
 }
 
 export default function App() {
+  const [persistenceReady, setPersistenceReady] = useState(false);
+  const [persistenceStatus, setPersistenceStatus] = useState<'loading' | 'saving' | 'saved' | 'error'>('loading');
   const [invitationState, setInvitationState] = useState<InvitationImportState>({ kind: 'idle' });
   const [historicalFiles, setHistoricalFiles] = useState<HistoricalFile[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -154,7 +153,7 @@ export default function App() {
   const [generationError, setGenerationError] = useState('');
   const [generationDiagnostic, setGenerationDiagnostic] = useState('');
   const [generatedDownload, setGeneratedDownload] = useState<GeneratedDownload | null>(null);
-  const [relayDrafts, setRelayDrafts] = useState<RelayDraftRow[]>([]);
+  const [relayDrafts, setRelayDrafts] = useState<PersistedRelayDraft[]>([]);
   const [relayForm, setRelayForm] = useState({
     choiceKey: '',
     name: '',
@@ -163,6 +162,69 @@ export default function App() {
   const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
   const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
   const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadAppSnapshot()
+      .then((snapshot) => {
+        if (cancelled) return;
+        if (snapshot) {
+          setInvitationState(snapshot.invitation
+            ? { kind: 'loaded', ...snapshot.invitation }
+            : { kind: 'idle' });
+          setHistoricalFiles(snapshot.historicalFiles);
+          setLocalAthletes(snapshot.localAthletes);
+          setClubDetails(snapshot.clubDetails);
+          setRelayDrafts(snapshot.relayDrafts);
+          setSelectedAthleteKeys(snapshot.selectedAthleteKeys);
+          setSelectedEventIds(snapshot.selectedEventIds);
+          setEditedTimes(snapshot.editedTimes);
+        }
+        setPersistenceStatus('saved');
+        setPersistenceReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPersistenceStatus('error');
+        setPersistenceReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!persistenceReady) return;
+    const snapshot = {
+      invitation: invitationState.kind === 'loaded'
+        ? { fileName: invitationState.fileName, meet: invitationState.meet }
+        : null,
+      historicalFiles,
+      localAthletes,
+      clubDetails,
+      relayDrafts,
+      selectedAthleteKeys,
+      selectedEventIds,
+      editedTimes,
+    };
+    setPersistenceStatus('saving');
+    const timeout = window.setTimeout(() => {
+      void saveAppSnapshot(snapshot)
+        .then(() => setPersistenceStatus('saved'))
+        .catch(() => setPersistenceStatus('error'));
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [
+    persistenceReady,
+    invitationState,
+    historicalFiles,
+    localAthletes,
+    clubDetails,
+    relayDrafts,
+    selectedAthleteKeys,
+    selectedEventIds,
+    editedTimes,
+  ]);
 
   useEffect(() => {
     const url = generatedDownload?.url;
@@ -545,7 +607,7 @@ export default function App() {
             className="file-input"
             type="file"
             accept=".lxf,.lef,application/zip,application/xml,text/xml"
-            disabled={invitationState.kind === 'loading'}
+            disabled={!persistenceReady || invitationState.kind === 'loading'}
             onChange={(event) => {
               const file = event.currentTarget.files?.[0];
               event.currentTarget.value = '';
@@ -595,6 +657,9 @@ export default function App() {
         <h3>{pl.fileImport.historyHeading}</h3>
         <p>{pl.fileImport.historyHint}</p>
         <p className="privacy-note">{pl.fileImport.localOnlyHint}</p>
+        <p className={`privacy-note persistence-${persistenceStatus}`} role="status">
+          {pl.fileImport.persistence[persistenceStatus]}
+        </p>
         <p className="privacy-note">{pl.fileImport.timePriorityHint}</p>
         <label
           className={`file-picker${invitationState.kind !== 'loaded' ? ' file-picker-disabled' : ''}`}
@@ -605,7 +670,7 @@ export default function App() {
             type="file"
             accept=".lxf,.lef,application/zip,application/xml,text/xml"
             multiple
-            disabled={invitationState.kind !== 'loaded' || historyLoading}
+            disabled={!persistenceReady || invitationState.kind !== 'loaded' || historyLoading}
             onChange={(event) => {
               const files = Array.from(event.currentTarget.files ?? []);
               event.currentTarget.value = '';

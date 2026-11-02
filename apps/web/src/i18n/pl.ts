@@ -21,7 +21,7 @@ export const pl = {
     addAthlete: 'Dodaj zawodnika',
     invalidAthlete: 'Uzupełnij poprawnie wszystkie dane zawodnika.',
     duplicateAthlete: 'Zawodnik o tych danych jest już na liście.',
-    sessionOnly: 'Ręcznie dodani zawodnicy są dostępni tylko do odświeżenia strony. Liczba:',
+    sessionOnly: 'Ręcznie dodani zawodnicy zapisują się lokalnie na tym urządzeniu. Liczba:',
   },
   export: {
     heading: 'Wygeneruj plik zgłoszenia',
@@ -66,7 +66,13 @@ export const pl = {
     historyHeading: 'Poprzednie zgłoszenia i wyniki (opcjonalnie)',
     historyHint: 'Dodaj pliki zgłoszeń z poprzednich zawodów lub opublikowane wyniki, aby wczytać zawodników i ich czasy.',
     chooseHistory: 'Dodaj poprzednie zgłoszenia lub wyniki',
-    localOnlyHint: 'Pliki są przetwarzane lokalnie. Podgląd nie zapisuje danych na stałe.',
+    localOnlyHint: 'Pliki są przetwarzane i zapisywane lokalnie w tej przeglądarce. Dane nie są wysyłane do sieci.',
+    persistence: {
+      loading: 'Odtwarzanie ostatniego zgłoszenia z pamięci przeglądarki…',
+      saving: 'Zapisywanie zmian na tym urządzeniu…',
+      saved: 'Zmiany zapisane lokalnie na tym urządzeniu.',
+      error: 'Nie udało się zapisać danych lokalnie. Nie zamykaj strony i pobierz zgłoszenie.',
+    },
     timePriorityHint: 'Podpowiadamy najnowszy ważny wynik; gdy go brak, używamy poprzedniego zgłoszenia. Bez daty rozstrzyga kolejność wczytania.',
     ageRule: 'Wiek zawodników liczymy według daty z zaproszenia (AGEDATE), a nie bieżącego roku.',
     loading: 'Odczytywanie plików…',
