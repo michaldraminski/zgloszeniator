@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
 import {
+  buildEntryFile,
   buildAthleteEventOptions,
   collectImportedHistory,
   formatTime,
@@ -13,6 +14,7 @@ import {
   type Meet,
   type Gender,
   type IncomingAthlete,
+  type EntryDraftAthlete,
   type ParsedLenexDocument,
 } from '@lenex-entries/core';
 
@@ -35,6 +37,11 @@ interface RejectedHistoryFile {
   fileName: string;
   reason: 'invalid' | 'wrong-type';
   diagnostic?: string;
+}
+
+interface GeneratedDownload {
+  fileName: string;
+  url: string;
 }
 
 async function parseFile(file: File): Promise<ParsedLenexDocument> {
@@ -111,9 +118,27 @@ export default function App() {
     gender: 'F' as Gender,
   });
   const [athleteFormError, setAthleteFormError] = useState('');
+  const [clubDetails, setClubDetails] = useState({
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+  });
+  const [generationError, setGenerationError] = useState('');
+  const [generationDiagnostic, setGenerationDiagnostic] = useState('');
+  const [generatedDownload, setGeneratedDownload] = useState<GeneratedDownload | null>(null);
   const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
   const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
   const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+    const url = generatedDownload?.url;
+    return () => {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [generatedDownload?.url]);
   const importedHistory = collectImportedHistory(
     historicalFiles.map(({ document }) => document),
     historicalFiles.map(({ fileName }) => fileName),
@@ -168,6 +193,7 @@ export default function App() {
   }
 
   function toggleEvent(athlete: AthleteEntryOptions, eventId: string, checked: boolean): void {
+    setGeneratedDownload(null);
     setSelectedEventIds((current) => {
       const currentIds = current[athlete.athleteKey] ?? athlete.events
         .filter((option) => option.suggestedTime)
@@ -180,10 +206,85 @@ export default function App() {
   }
 
   function updateTime(athleteKey: string, eventId: string, value: string): void {
+    setGenerationError('');
+    setGenerationDiagnostic('');
+    setGeneratedDownload(null);
     setEditedTimes((current) => ({
       ...current,
       [athleteKey]: { ...current[athleteKey], [eventId]: value },
     }));
+  }
+
+  function generateEntryFile(): void {
+    if (invitationState.kind !== 'loaded') {
+      return;
+    }
+    setGenerationError('');
+    setGenerationDiagnostic('');
+    const athletes: EntryDraftAthlete[] = [];
+
+    for (const athlete of selectedEntryOptions) {
+      const entries: EntryDraftAthlete['entries'] = [];
+      for (const option of athlete.events) {
+        if (!isEventSelected(athlete, option)) {
+          continue;
+        }
+        const eventId = option.event.eventId;
+        const value = editedTimes[athlete.athleteKey]?.[eventId] ??
+          (option.suggestedTime ? formatTime(option.suggestedTime.timeCs) : '');
+        const timeCs = parseTime(value);
+        if (timeCs === null) {
+          setGenerationError(pl.export.invalidOrMissingTime);
+          return;
+        }
+        entries.push({ eventId, timeCs });
+      }
+      if (entries.length > 0) {
+        athletes.push({
+          firstName: athlete.athlete.firstName,
+          lastName: athlete.athlete.lastName,
+          birthYear: athlete.athlete.birthYear,
+          gender: athlete.athlete.gender,
+          entries,
+        });
+      }
+    }
+
+    if (athletes.length === 0) {
+      setGenerationError(pl.export.noEntriesSelected);
+      return;
+    }
+
+    try {
+      const bytes = buildEntryFile(invitationState.meet, {
+        club: {
+          name: clubDetails.name,
+          contact: {
+            name: clubDetails.contactName,
+            phone: clubDetails.phone,
+            email: clubDetails.email,
+          },
+        },
+        athletes,
+      });
+      const buffer = bytes.slice().buffer as ArrayBuffer;
+      const blob = new Blob([buffer], { type: 'application/zip' });
+      const objectUrl = URL.createObjectURL(blob);
+      const safeMeetName = invitationState.meet.name
+        .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '-')
+        .trim() || 'zgłoszenie';
+      const fileName = `${safeMeetName}.lxf`;
+      setGeneratedDownload({ fileName, url: objectUrl });
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.append(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      setGenerationError(pl.export.generationFailed);
+      setGenerationDiagnostic(error instanceof Error ? error.message : 'Unknown generation error');
+    }
   }
 
   function addAthlete(event: FormEvent<HTMLFormElement>): void {
@@ -196,7 +297,13 @@ export default function App() {
       gender: athleteForm.gender,
     };
 
-    if (!athlete.lastName || !athlete.firstName || !Number.isSafeInteger(birthYear)) {
+    if (
+      !athlete.lastName ||
+      !athlete.firstName ||
+      !Number.isSafeInteger(birthYear) ||
+      birthYear < 1900 ||
+      birthYear > 2100
+    ) {
       setAthleteFormError(pl.roster.invalidAthlete);
       return;
     }
@@ -209,6 +316,7 @@ export default function App() {
 
     setLocalAthletes((current) => [...current, athlete]);
     setSelectedAthleteKeys((current) => [...current, athleteKey]);
+    setGeneratedDownload(null);
     setAthleteFormError('');
     setAthleteForm({ lastName: '', firstName: '', birthYear: '', gender: 'F' });
   }
@@ -225,6 +333,7 @@ export default function App() {
       setSelectedAthleteKeys([]);
       setSelectedEventIds({});
       setEditedTimes({});
+      setGeneratedDownload(null);
       setInvitationState({ kind: 'loaded', fileName: file.name, meet: document.meet });
     } catch (error) {
       setInvitationState({
@@ -261,6 +370,7 @@ export default function App() {
 
     setHistoricalFiles((current) => [...current, ...accepted]);
     setRejectedHistoryFiles(rejected);
+    setGeneratedDownload(null);
     setHistoryLoading(false);
   }
 
@@ -478,13 +588,20 @@ export default function App() {
               <div className="selection-actions">
                 <button
                   type="button"
-                  onClick={() =>
-                    setSelectedAthleteKeys(rosterAthletes.map((athlete) => identityKey(athlete)))
-                  }
+                  onClick={() => {
+                    setGeneratedDownload(null);
+                    setSelectedAthleteKeys(rosterAthletes.map((athlete) => identityKey(athlete)));
+                  }}
                 >
                   {pl.fileImport.selectAllAthletes}
                 </button>
-                <button type="button" onClick={() => setSelectedAthleteKeys([])}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGeneratedDownload(null);
+                    setSelectedAthleteKeys([]);
+                  }}
+                >
                   {pl.fileImport.clearAthletes}
                 </button>
               </div>
@@ -499,6 +616,7 @@ export default function App() {
                         type="checkbox"
                         checked={selectedAthleteKeys.includes(athleteKey)}
                         onChange={(event) => {
+                          setGeneratedDownload(null);
                           setSelectedAthleteKeys((current) =>
                             event.target.checked
                               ? [...current, athleteKey]
@@ -585,6 +703,83 @@ export default function App() {
               </div>
             </>
           )}
+
+          <div className="export-panel">
+            <h3>{pl.export.heading}</h3>
+            <p>{pl.export.help}</p>
+            <div className="club-details-form">
+              <label>
+                <span>{pl.export.clubName}</span>
+                <input
+                  required
+                  value={clubDetails.name}
+                  onChange={(event) => {
+                    setGeneratedDownload(null);
+                    setClubDetails((current) => ({ ...current, name: event.target.value }));
+                  }}
+                />
+              </label>
+              <label>
+                <span>{pl.export.contactName}</span>
+                <input
+                  value={clubDetails.contactName}
+                  onChange={(event) => {
+                    setGeneratedDownload(null);
+                    setClubDetails((current) => ({ ...current, contactName: event.target.value }));
+                  }}
+                />
+              </label>
+              <label>
+                <span>{pl.export.phone}</span>
+                <input
+                  type="tel"
+                  value={clubDetails.phone}
+                  onChange={(event) => {
+                    setGeneratedDownload(null);
+                    setClubDetails((current) => ({ ...current, phone: event.target.value }));
+                  }}
+                />
+              </label>
+              <label>
+                <span>{pl.export.email}</span>
+                <input
+                  type="email"
+                  value={clubDetails.email}
+                  onChange={(event) => {
+                    setGeneratedDownload(null);
+                    setClubDetails((current) => ({ ...current, email: event.target.value }));
+                  }}
+                />
+              </label>
+            </div>
+            {generationError && (
+              <div className="form-error" role="alert">
+                <p>{generationError}</p>
+                {generationDiagnostic && (
+                  <details>
+                    <summary>{pl.export.diagnosticLabel}</summary>
+                    <code>{generationDiagnostic}</code>
+                  </details>
+                )}
+              </div>
+            )}
+            <button
+              className="generate-button"
+              type="button"
+              disabled={!clubDetails.name.trim() || selectedEntryCount === 0}
+              onClick={generateEntryFile}
+            >
+              {pl.export.download}
+            </button>
+            {generatedDownload && (
+              <p className="download-ready" role="status">
+                {pl.export.fileReady}{' '}
+                <a href={generatedDownload.url} download={generatedDownload.fileName}>
+                  {generatedDownload.fileName}
+                </a>
+              </p>
+            )}
+          </div>
         </section>
       )}
     </main>

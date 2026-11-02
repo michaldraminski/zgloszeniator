@@ -41,6 +41,8 @@ describe('buildEntryFile', () => {
     expect(xml).toMatch(/<LENEX[^>]*version="2\.0"/);
     expect(xml).toContain('<AGEGROUP name="Synthetic Junior" agemin="12" agemax="15" />');
     expect(xml).toContain('<CONSTRUCTOR name="Lenex Entries"');
+    expect(xml.indexOf('</MEETS>')).toBeLessThan(xml.indexOf('<CLUBS>'));
+    expect(xml.indexOf('<CLUBS>')).toBeLessThan(xml.indexOf('<CONSTRUCTOR'));
     expect(parsed.clubs).toHaveLength(1);
     expect(parsed.clubs[0]).toMatchObject({
       name: sampleDraft.club.name,
@@ -67,11 +69,31 @@ describe('buildEntryFile', () => {
     expect(parseEntryFile(xml).clubs[0].name).toBe('Club <A> & &#128512;');
   });
 
+  it('replaces an invitation constructor instead of preserving the vendor identity', () => {
+    const invitationWithConstructor = invitationXml.replace(
+      '</LENEX>',
+      '<CONSTRUCTOR name="Vendor Tool" /></LENEX>',
+    );
+    const archive = buildEntryFile(parseInvitation(invitationWithConstructor), sampleDraft);
+    const { xml } = readLxf(archive);
+
+    expect(xml.match(/<CONSTRUCTOR\b/g)).toHaveLength(1);
+    expect(xml).toContain('<CONSTRUCTOR name="Lenex Entries" version="0.1.0" />');
+    expect(xml).not.toContain('Vendor Tool');
+  });
+
   it('rejects invalid times, unknown events, and duplicate athlete identities', () => {
     const meet = parseInvitation(invitationXml);
     expect(() => buildEntryFile(meet, {
       ...sampleDraft,
       athletes: [{ ...sampleDraft.athletes[0], entries: [{ eventId: 'synthetic-event-1', timeCs: -1 }] }],
+    })).toThrow('Invalid entry time');
+    expect(() => buildEntryFile(meet, {
+      ...sampleDraft,
+      athletes: [{
+        ...sampleDraft.athletes[0],
+        entries: [{ eventId: 'synthetic-event-1', timeCs: 100 * 60 * 60 * 100 }],
+      }],
     })).toThrow('Invalid entry time');
     expect(() => buildEntryFile(meet, {
       ...sampleDraft,
@@ -81,5 +103,19 @@ describe('buildEntryFile', () => {
       ...sampleDraft,
       athletes: [sampleDraft.athletes[0], sampleDraft.athletes[0]],
     })).toThrow('Duplicate athlete');
+  });
+
+  it('rejects duplicate event IDs for one athlete', () => {
+    const meet = parseInvitation(invitationXml);
+    expect(() => buildEntryFile(meet, {
+      ...sampleDraft,
+      athletes: [{
+        ...sampleDraft.athletes[0],
+        entries: [
+          { eventId: 'synthetic-event-1', timeCs: 3125 },
+          { eventId: 'synthetic-event-1', timeCs: 3100 },
+        ],
+      }],
+    })).toThrow('Duplicate event for athlete');
   });
 });

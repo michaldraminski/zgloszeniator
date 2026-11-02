@@ -118,6 +118,86 @@ ul {
   color: #b91c1c;
 }
 
+.form-error p {
+  margin-bottom: 0.35rem;
+}
+
+.form-error code {
+  display: block;
+  margin-top: 0.3rem;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+}
+
+.export-panel {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.export-panel h3 {
+  margin-bottom: 0.25rem;
+}
+
+.club-details-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.club-details-form label {
+  display: grid;
+  gap: 0.3rem;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.club-details-form input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.generate-button {
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid #1d4ed8;
+  border-radius: 0.65rem;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.generate-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.generate-button:disabled {
+  border-color: #94a3b8;
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.download-ready {
+  margin: 0.8rem 0 0;
+  color: #166534;
+}
+
+.download-ready a {
+  color: #1d4ed8;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .file-picker {
   display: inline-flex;
   align-items: center;
@@ -394,6 +474,10 @@ hr {
 
   .athlete-form button {
     grid-column: 1 / -1;
+  }
+
+  .club-details-form {
+    grid-template-columns: 1fr;
   }
 
   .entry-planner-header {

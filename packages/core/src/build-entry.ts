@@ -1,9 +1,7 @@
-import { zipSync } from 'fflate';
-
 import { encodeWindows1250, decodeWindows1250 } from './encoding';
 import { ageAt, resolveEvent } from './entry-options';
 import type { Meet, Gender } from './lenex';
-import { formatTime } from './time';
+import { formatTime, parseTime } from './time';
 import { writeLxf } from './container';
 
 export interface EntryDraftAthlete {
@@ -84,14 +82,23 @@ function validateDraft(meet: Meet, draft: EntryFileDraft): void {
 
     const age = ageAt(meet, athlete.birthYear);
     const disciplines = new Set<string>();
+    const eventIds = new Set<string>();
     for (const entry of athlete.entries) {
-      if (!Number.isSafeInteger(entry.timeCs) || entry.timeCs < 0) {
+      if (
+        !Number.isSafeInteger(entry.timeCs) ||
+        entry.timeCs < 0 ||
+        parseTime(formatTime(entry.timeCs)) !== entry.timeCs
+      ) {
         throw new EntryFileGenerationError('Invalid entry time');
       }
       const event = meet.events.find((candidate) => candidate.eventId === entry.eventId);
       if (!event || event.gender !== athlete.gender || !event.disciplineKey) {
         throw new EntryFileGenerationError(`Unknown event for athlete: ${entry.eventId}`);
       }
+      if (eventIds.has(entry.eventId)) {
+        throw new EntryFileGenerationError('Duplicate event for athlete');
+      }
+      eventIds.add(entry.eventId);
       const resolved = resolveEvent(meet, athlete.gender, event.disciplineKey, age);
       if (!resolved || resolved.eventId !== event.eventId) {
         throw new EntryFileGenerationError(`Event is not age-eligible for athlete: ${entry.eventId}`);
