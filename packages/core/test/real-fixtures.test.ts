@@ -113,11 +113,33 @@ describe('real LENEX sample fixtures', () => {
         return { eventId: event.eventId, timeCs: entry.timeCs };
       }),
     }));
+    const relays = sourceClub.relays.map((relay) => {
+      const event = meet.events.find(
+        (candidate) =>
+          candidate.sessionNumber === relay.sessionNumber &&
+          candidate.number === relay.eventNumber &&
+          candidate.gender === relay.gender &&
+          candidate.relayCount > 1,
+      );
+      if (!event || relay.timeCs === null) {
+        throw new Error('Olecko event schedule cannot reproduce a ready-file relay');
+      }
+      return {
+        eventId: event.eventId,
+        number: relay.number,
+        name: relay.name,
+        gender: relay.gender,
+        timeCs: relay.timeCs,
+        ...(relay.ageMin !== undefined ? { ageMin: relay.ageMin } : {}),
+        ...(relay.ageMax !== undefined ? { ageMax: relay.ageMax } : {}),
+      };
+    });
 
     const generatedXml = readLxf(
       buildEntryFile(meet, {
         club: { name: sourceClub.name, contact: sourceClub.contact },
         athletes,
+        relays,
       }),
     ).xml;
     const generated = parseEntryFile(generatedXml);
@@ -150,6 +172,20 @@ describe('real LENEX sample fixtures', () => {
     expect(generated.clubs[0].name).toBe(sourceClub.name);
     expect(generated.clubs[0].contact).toEqual(sourceClub.contact);
     expect(generated.clubs[0].athletes).toHaveLength(sourceClub.athletes.length);
+    expect(generated.clubs[0].relays).toHaveLength(sourceClub.relays.length);
+    const relayRecordsMatch = sourceClub.relays.every((sourceRelay) =>
+      generated.clubs[0].relays.some((generatedRelay) =>
+        generatedRelay.sessionNumber === sourceRelay.sessionNumber &&
+        generatedRelay.eventNumber === sourceRelay.eventNumber &&
+        generatedRelay.gender === sourceRelay.gender &&
+        generatedRelay.number === sourceRelay.number &&
+        generatedRelay.name === sourceRelay.name &&
+        generatedRelay.timeCs === sourceRelay.timeCs &&
+        generatedRelay.ageMin === sourceRelay.ageMin &&
+        generatedRelay.ageMax === sourceRelay.ageMax,
+      ),
+    );
+    expect(relayRecordsMatch).toBe(true);
     expect(generatedRecords).toEqual(sourceRecords);
   });
 

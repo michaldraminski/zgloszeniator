@@ -48,8 +48,12 @@ export interface ParsedRelay {
   gender: EventGender;
   number: number;
   eventId: string;
+  eventNumber: number;
+  sessionNumber: number;
   disciplineKey: string;
   timeCs: number | null;
+  ageMin?: number;
+  ageMax?: number;
 }
 
 export interface ParsedClub {
@@ -386,12 +390,28 @@ export function parseEntryFile(xml: string): ParsedEntryFile {
       gender: parseAthleteGender(attr(athlete, 'gender')),
       entries: parseParsedEntries(athlete, eventMap),
     }));
+    const relayEvents = new Map(
+      meet.events.map((event) => [event.eventId, event]),
+    );
     const relays = (relaysNode ? children(relaysNode.RELAY) : []).flatMap((relay) => {
       const eventEntries = parseParsedEntries(relay, eventMap);
       return eventEntries.map((entry) => ({
+        ...(() => {
+          const event = relayEvents.get(entry.eventId);
+          if (!event) {
+            throw new LenexParseError(`RELAY references unknown eventid: ${entry.eventId}`);
+          }
+          return { eventNumber: event.number, sessionNumber: event.sessionNumber };
+        })(),
         name: requiredAttr(relay, 'name', 'RELAY'),
         gender: parseGender(attr(relay, 'gender'), 'RELAY'),
         number: integerAttr(relay, 'number', 'RELAY', { defaultValue: 0 }),
+        ...(attr(relay, 'agemin') !== undefined
+          ? { ageMin: integerAttr(relay, 'agemin', 'RELAY') }
+          : {}),
+        ...(attr(relay, 'agemax') !== undefined
+          ? { ageMax: integerAttr(relay, 'agemax', 'RELAY') }
+          : {}),
         ...entry,
       }));
     });

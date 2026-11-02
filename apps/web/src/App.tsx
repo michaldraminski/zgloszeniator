@@ -16,6 +16,7 @@ import {
   type Gender,
   type IncomingAthlete,
   type EntryDraftAthlete,
+  type EntryDraftRelay,
   type ParsedLenexDocument,
 } from '@lenex-entries/core';
 
@@ -44,6 +45,23 @@ interface RejectedHistoryFile {
 interface GeneratedDownload {
   fileName: string;
   url: string;
+}
+
+interface RelayChoice {
+  key: string;
+  eventId: string;
+  eventNumber: number;
+  disciplineKey: string;
+  gender: 'F' | 'M' | 'X';
+  relayCount: number;
+  ageMin?: number;
+  ageMax?: number;
+  categoryName: string;
+}
+
+interface RelayDraftRow {
+  key: string;
+  relay: EntryDraftRelay;
 }
 
 async function parseFile(file: File): Promise<ParsedLenexDocument> {
@@ -130,6 +148,12 @@ export default function App() {
   const [generationError, setGenerationError] = useState('');
   const [generationDiagnostic, setGenerationDiagnostic] = useState('');
   const [generatedDownload, setGeneratedDownload] = useState<GeneratedDownload | null>(null);
+  const [relayDrafts, setRelayDrafts] = useState<RelayDraftRow[]>([]);
+  const [relayForm, setRelayForm] = useState({
+    choiceKey: '',
+    name: '',
+    time: '',
+  });
   const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
   const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
   const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
@@ -168,6 +192,24 @@ export default function App() {
           new Set(selectedAthleteKeys),
         )
       : [];
+  const relayChoices: RelayChoice[] = invitationState.kind === 'loaded'
+    ? invitationState.meet.events
+        .filter((event) => event.relayCount > 1 && event.disciplineKey)
+        .flatMap((event) => {
+          const ageGroups = event.ageGroups.length > 0 ? event.ageGroups : [undefined];
+          return ageGroups.map((ageGroup, index) => ({
+            key: `${event.eventId}::${index}`,
+            eventId: event.eventId,
+            eventNumber: event.number,
+            disciplineKey: event.disciplineKey!,
+            gender: event.gender,
+            relayCount: event.relayCount,
+            ...(ageGroup ? { ageMin: ageGroup.min, ageMax: ageGroup.max ?? -1 } : {}),
+            categoryName: ageGroup?.name ?? '',
+          }));
+        })
+    : [];
+  const selectedRelayChoice = relayChoices.find((choice) => choice.key === relayForm.choiceKey) ?? relayChoices[0];
   const entryObservationCount = importedHistory.observations.filter(
     (item) => item.source.kind === 'entry',
   ).length;
@@ -187,6 +229,8 @@ export default function App() {
       ).length,
     0,
   );
+  const selectedRelayCount = relayDrafts.length;
+  const totalSelectedEntryCount = selectedEntryCount + selectedRelayCount;
 
   function isEventSelected(athlete: AthleteEntryOptions, option: AthleteEventOption): boolean {
     return (selectedEventIds[athlete.athleteKey] ??
@@ -217,6 +261,41 @@ export default function App() {
       ...current,
       [athleteKey]: { ...current[athleteKey], [eventId]: value },
     }));
+  }
+
+  function addRelay(): void {
+    if (!selectedRelayChoice) {
+      return;
+    }
+    const timeCs = parseTime(relayForm.time);
+    if (timeCs === null) {
+      setGenerationError(pl.relay.invalidTime);
+      return;
+    }
+    const name = relayForm.name.trim() || selectedRelayChoice.categoryName;
+    if (!name) {
+      setGenerationError(pl.relay.categoryRequired);
+      return;
+    }
+    const relay: EntryDraftRelay = {
+      eventId: selectedRelayChoice.eventId,
+      number: 1,
+      name,
+      gender: selectedRelayChoice.gender,
+      timeCs,
+      ...(selectedRelayChoice.ageMin !== undefined ? { ageMin: selectedRelayChoice.ageMin } : {}),
+      ...(selectedRelayChoice.ageMax !== undefined ? { ageMax: selectedRelayChoice.ageMax } : {}),
+    };
+    setRelayDrafts((current) => [...current, { key: globalThis.crypto.randomUUID(), relay }]);
+    setGenerationError('');
+    setGenerationDiagnostic('');
+    setGeneratedDownload(null);
+    setRelayForm((current) => ({ ...current, time: '' }));
+  }
+
+  function removeRelay(relayKey: string): void {
+    setRelayDrafts((current) => current.filter((row) => row.key !== relayKey));
+    setGeneratedDownload(null);
   }
 
   function generateEntryFile(): void {
@@ -254,7 +333,7 @@ export default function App() {
       }
     }
 
-    if (athletes.length === 0) {
+    if (athletes.length === 0 && relayDrafts.length === 0) {
       setGenerationError(pl.export.noEntriesSelected);
       return;
     }
@@ -270,6 +349,7 @@ export default function App() {
           },
         },
         athletes,
+        relays: relayDrafts.map(({ relay }) => relay),
       });
       const buffer = bytes.slice().buffer as ArrayBuffer;
       const blob = new Blob([buffer], { type: 'application/zip' });
@@ -340,6 +420,8 @@ export default function App() {
       setSelectedAthleteKeys(localAthletes.map((athlete) => identityKey(athlete)));
       setSelectedEventIds({});
       setEditedTimes({});
+      setRelayDrafts([]);
+      setRelayForm({ choiceKey: '', name: '', time: '' });
       setGeneratedDownload(null);
       setInvitationState({ kind: 'loaded', fileName: file.name, meet: document.meet });
     } catch (error) {
@@ -350,7 +432,7 @@ export default function App() {
         ...(error instanceof Error ? { diagnostic: error.message } : {}),
       });
     }
-  }
+    }
 
   async function loadHistory(files: File[]): Promise<void> {
     setHistoryLoading(true);
@@ -578,7 +660,7 @@ export default function App() {
         </section>
       )}
 
-      {invitationState.kind === 'loaded' && (historicalFiles.length > 0 || localAthletes.length > 0) && (
+      {invitationState.kind === 'loaded' && (
         <section className="panel entry-planner">
           <div className="entry-planner-header">
             <div>
@@ -587,7 +669,7 @@ export default function App() {
             </div>
             <p className="selection-counts">
               {pl.fileImport.selectedAthletes}: {selectedAthletes.length} ·{' '}
-              {pl.fileImport.selectedEntries}: {selectedEntryCount}
+              {pl.fileImport.selectedEntries}: {totalSelectedEntryCount}
             </p>
           </div>
 
@@ -727,6 +809,73 @@ export default function App() {
             </>
           )}
 
+          <section className="relay-panel" aria-labelledby="relay-heading">
+            <h3 id="relay-heading">{pl.relay.heading}</h3>
+            <p>{pl.relay.optionalMembersNote}</p>
+            {relayChoices.length === 0 ? (
+              <p>{pl.relay.noRelayEvents}</p>
+            ) : (
+              <>
+                <div className="relay-form">
+                  <label>
+                    <span>{pl.relay.event}</span>
+                    <select
+                      value={selectedRelayChoice?.key ?? ''}
+                      onChange={(event) => {
+                        const nextChoice = relayChoices.find((choice) => choice.key === event.target.value);
+                        setRelayForm({
+                          choiceKey: event.target.value,
+                          name: nextChoice?.categoryName ?? '',
+                          time: relayForm.time,
+                        });
+                        setGenerationError('');
+                      }}
+                    >
+                      {relayChoices.map((choice) => (
+                        <option key={choice.key} value={choice.key}>
+                          {choice.eventNumber}. {choice.disciplineKey} · {choice.categoryName || pl.relay.categoryUnspecified}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>{pl.relay.category}</span>
+                    <input
+                      value={relayForm.name}
+                      onChange={(event) => setRelayForm((current) => ({ ...current, name: event.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    <span>{pl.relay.time}</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="00:00:00.00"
+                      value={relayForm.time}
+                      onChange={(event) => setRelayForm((current) => ({ ...current, time: event.target.value }))}
+                    />
+                  </label>
+                  <button type="button" onClick={addRelay}>{pl.relay.add}</button>
+                </div>
+                {relayDrafts.length > 0 && (
+                  <ul className="relay-list">
+                    {relayDrafts.map(({ key, relay }) => {
+                      const choice = relayChoices.find((item) => item.eventId === relay.eventId);
+                      return (
+                        <li key={key}>
+                          <span>
+                            {choice?.eventNumber}. {choice?.disciplineKey} · {relay.name} · {formatTime(relay.timeCs)}
+                          </span>
+                          <button type="button" onClick={() => removeRelay(key)}>{pl.relay.remove}</button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
+            )}
+          </section>
+
           <div className="export-panel">
             <h3>{pl.export.heading}</h3>
             <p>{pl.export.help}</p>
@@ -789,7 +938,7 @@ export default function App() {
             <button
               className="generate-button"
               type="button"
-              disabled={!clubDetails.name.trim() || selectedEntryCount === 0}
+              disabled={!clubDetails.name.trim() || totalSelectedEntryCount === 0}
               onClick={generateEntryFile}
             >
               {pl.export.download}

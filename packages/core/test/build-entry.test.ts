@@ -150,7 +150,7 @@ describe('buildEntryFile', () => {
     expect(xml).not.toContain('RELAYPOSITIONS');
   });
 
-  it('rejects relay entries that reference an individual event or duplicate relay numbers', () => {
+  it('rejects relay entries that reference an individual event or have an invalid time', () => {
     const meet = parseInvitation(invitationXml);
     const draft = {
       ...sampleDraft,
@@ -168,10 +168,7 @@ describe('buildEntryFile', () => {
     expect(() => buildEntryFile(meet, {
       ...sampleDraft,
       athletes: [],
-      relays: [
-        { ...draft.relays[0], eventId: 'synthetic-relay-event', gender: 'X' as const },
-        { ...draft.relays[0], eventId: 'synthetic-relay-event', gender: 'X' as const },
-      ],
-    })).toThrow('Duplicate relay number');
+      relays: [{ ...draft.relays[0], eventId: 'synthetic-relay-event', gender: 'X' as const, timeCs: -1 }],
+    })).toThrow('Invalid relay time');
   });
 });

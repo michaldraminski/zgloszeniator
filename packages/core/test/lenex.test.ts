@@ -53,7 +53,7 @@ const entryXml = `<?xml version="1.0" encoding="Windows-1250"?>
     <ATHLETES><ATHLETE lastname="Example" firstname="Swimmer" birthdate="2012-01-01" gender="F">
       <ENTRIES><ENTRY eventid="event-1" entrytime="00:00:31.25" /></ENTRIES>
     </ATHLETE></ATHLETES>
-    <RELAYS><RELAY gender="X" number="2" name="Example relay" relayid="local-1">
+    <RELAYS><RELAY gender="X" number="2" name="Example relay" agemin="-1" agemax="-1" relayid="local-1">
       <ENTRIES><ENTRY eventid="event-relay" entrytime="00:02:01.00" /></ENTRIES>
     </RELAY></RELAYS>
   </CLUB></CLUBS>
@@ -107,7 +107,11 @@ describe('LENEX parsers', () => {
       }],
       relays: [{
         eventId: 'event-relay',
+        eventNumber: 2,
+        sessionNumber: 1,
         disciplineKey: '4x50m SF',
+        ageMin: -1,
+        ageMax: -1,
         timeCs: 12100,
       }],
     });

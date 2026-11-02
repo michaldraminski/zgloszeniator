@@ -25,7 +25,7 @@ Start with Polish finswimming (Klubowy Puchar Polski), but nothing in the core m
 
 - No backend, no accounts, no central database, no analytics.
 - No organizer-side features (meet management, start lists).
-- No relay member assignment (the golden file does not contain relay positions).
+- Relay entries are supported without member assignment. Optional member positions remain deferred until the LENEX `RELAYPOSITIONS` schema is verified against an importer-compatible example.
 
 ---
 
@@ -83,6 +83,7 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
   - `athleteid` is a local counter starting at 1. There is no licence number, no nation.
   - Children: `ENTRIES > ENTRY(eventid, entrytime)`. There is no `entrycourse`.
 - `RELAY`: `gender`, `number`, `name`, optional `agemin`/`agemax`, `relayid`, `ENTRIES > ENTRY(eventid, entrytime)`. No `RELAYPOSITIONS`.
+- The Olecko ready entry contains 11 relay teams, each with a relay event reference and entry time. `number="1"` is reused across categories; do not assume it is unique per event. Relay-position membership is intentionally omitted from generated files for now.
 - Entry time format: `hh:mm:ss.cc`, for example `00:04:23.33`.
 - Many times end in `.00` (hand-typed estimates). So a time needs a **source**.
 
@@ -239,7 +240,7 @@ Golden test = **semantic** equality (canonical XML: sorted attributes, trimmed w
 1. **Zawodnicy**: roster table (add/edit/delete, birth year, gender). Import from CSV or paste from Excel. Search.
 2. **Import**: first load the current organizer invitation (`.lxf`/`.lef`), which is required to start a meet. Then optionally load one or more previous entry files or results files as historical athlete/time sources. Auto-detect LENEX type by content: `CLUBS` with `ENTRY` = previous entry; `RESULT` = results; neither = invitation. Show a preview: matched / new / ambiguous athletes with a confirm step. Nothing is written before confirmation.
 3. **Zgłoszenie**: pick a meet. **Matrix**: rows = athletes, columns = disciplines grouped by session. Cell = toggle + time (editable, with a badge for the origin: wynik / poprzednie zgłoszenie / ręcznie). Row counter `x/4`. Cells the athlete is not eligible for are disabled with a reason. Action: "Skopiuj wybór z poprzedniego zgłoszenia".
-4. **Sztafety**: list of relays (name, gender, event, time).
+4. **Sztafety**: add relay event/category and entry time. Athlete positions are optional in principle but are not emitted until the `RELAYPOSITIONS` schema is verified; the Olecko ready entry contains no positions.
 5. **Eksport**: club contact fields, validation panel (blocking vs warnings), download `.lxf`.
 6. **Ustawienia**: time policy, backup export/import, "persist storage" request.
 
@@ -298,6 +299,7 @@ UX principles: keyboard-first matrix (arrows, space to toggle, type to edit time
 9. GitHub Pages serves a project site under `/<repo-name>/`. Set Vite `base` from an env variable (`/` for a custom domain). Avoid client-side routes that need server fallback: use hash routing or a single view with state.
 10. Historical time priority: choose a matching result before any previous-entry time; among results, prefer the latest ISO `MEET@date`. If either date is missing or dates are equal, later import order is the tie-breaker. Confirm that organizers consistently provide `MEET@date` before relying on date ordering for all files.
 11. The Olecko results export omits `SWIMSTYLE@name`. Recover its discipline labels only from a prior entry with the same non-empty city, course, and complete unique `(session, event number, gender, relay count)` schedule. If no unique compatible label inventory exists, keep those results unresolved rather than guessing.
+12. Optional relay-member assignment requires a validated `RELAYPOSITIONS/RELAYPOSITION` schema and an organizer-import check. The supplied Olecko entry has no relay positions, so the current generator exports relay team/category, event, and time only.
 
 ---
 

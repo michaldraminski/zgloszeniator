@@ -135,6 +135,84 @@ ul {
   border-top: 1px solid #e2e8f0;
 }
 
+.relay-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.8rem;
+  background: #f8fbff;
+}
+
+.relay-panel h3 {
+  margin-bottom: 0.25rem;
+}
+
+.relay-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) minmax(160px, 1fr) minmax(150px, 0.8fr) auto;
+  gap: 0.7rem;
+  align-items: end;
+}
+
+.relay-form label {
+  display: grid;
+  gap: 0.3rem;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.relay-form input,
+.relay-form select {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.relay-form button,
+.relay-list button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #1d4ed8;
+  border-radius: 0.55rem;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.relay-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.relay-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.55rem;
+  background: #fff;
+}
+
+.relay-list button {
+  min-height: 2rem;
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #334155;
+}
+
 .export-panel h3 {
   margin-bottom: 0.25rem;
 }
@@ -511,6 +589,15 @@ hr {
 
   .club-details-form {
     grid-template-columns: 1fr;
+  }
+
+  .relay-form {
+    grid-template-columns: 1fr;
+  }
+
+  .relay-list li {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .entry-planner-header {
