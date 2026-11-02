@@ -39,7 +39,7 @@ export const pl = {
   },
   relay: {
     heading: 'Sztafety',
-    optionalMembersNote: 'Skład sztafety jest opcjonalny. Zawodników możesz przypisać po dodaniu zespołu; niewypełnione pozycje nie blokują eksportu.',
+    optionalMembersNote: 'Skład sztafety jest opcjonalny. Najpierw zaznacz zawodników na liście zgłoszenia, a potem możesz przypisać ich do pozycji; niewypełnione pozycje nie blokują eksportu.',
     noRelayEvents: 'To zaproszenie nie zawiera konkurencji sztafetowych.',
     event: 'Konkurencja i kategoria',
     category: 'Nazwa kategorii / zespołu',

@@ -1,5 +1,5 @@
 import { identityKey } from './lenex';
-import type { Course, Gender, Meet, MeetEvent, IncomingAthlete } from './lenex';
+import type { Course, EventGender, Gender, Meet, MeetEvent, IncomingAthlete } from './lenex';
 import type { ImportedHistory, ImportedTimeObservation } from './history';
 import { suggestImportedTime } from './history';
 
@@ -20,6 +20,17 @@ export interface AthleteEntryOptions {
   athleteKey: string;
   age: number;
   events: AthleteEventOption[];
+}
+
+export function getRelayMemberOptions(
+  athletes: readonly IncomingAthlete[],
+  selectedAthleteKeys: ReadonlySet<string>,
+  relayGender: EventGender,
+): IncomingAthlete[] {
+  return athletes.filter((athlete) =>
+    selectedAthleteKeys.has(identityKey(athlete)) &&
+    (relayGender === 'X' || athlete.gender === relayGender),
+  );
 }
 
 export function ageAt(meet: Meet, birthYear: number): number {

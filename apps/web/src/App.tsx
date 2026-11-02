@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import {
   buildEntryFile,
   buildAthleteEventOptions,
+  getRelayMemberOptions,
   ageAt,
   collectImportedHistory,
   formatTime,
@@ -783,6 +784,14 @@ export default function App() {
                         checked={selectedAthleteKeys.includes(athleteKey)}
                         onChange={(event) => {
                           setGeneratedDownload(null);
+                          if (!event.target.checked) {
+                            setRelayDrafts((current) => current.map((row) => ({
+                              ...row,
+                              memberAthleteKeys: row.memberAthleteKeys.map((memberKey) =>
+                                memberKey === athleteKey ? null : memberKey,
+                              ),
+                            })));
+                          }
                           setSelectedAthleteKeys((current) =>
                             event.target.checked
                               ? [...current, athleteKey]
@@ -945,8 +954,10 @@ export default function App() {
                                   const previousPositionEmpty = position > 0 &&
                                     !row.memberAthleteKeys[position - 1];
                                   const relayGender = choice?.gender ?? 'X';
-                                  const compatibleAthletes = rosterAthletes.filter(
-                                    (athlete) => relayGender === 'X' || athlete.gender === relayGender,
+                                  const compatibleAthletes = getRelayMemberOptions(
+                                    rosterAthletes,
+                                    new Set(selectedAthleteKeys),
+                                    relayGender,
                                   );
                                   const usedElsewhere = new Set(
                                     row.memberAthleteKeys.filter((value, index) => index !== position && value),

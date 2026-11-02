@@ -10,6 +10,7 @@ import {
   suggestImportedTime,
   ageAt,
   buildAthleteEventOptions,
+  getRelayMemberOptions,
   resolveEvent,
   UnsupportedAgeDateType,
 } from '../src/index';
@@ -392,5 +393,15 @@ describe('LENEX parsers', () => {
       'Example',
       'Nowak',
     ]);
+  });
+
+  it('offers relay members only from the selected submission roster and matching gender', () => {
+    const female = { firstName: 'Ada', lastName: 'Example', birthYear: 2012, gender: 'F' as const };
+    const male = { firstName: 'Alex', lastName: 'Example', birthYear: 2012, gender: 'M' as const };
+    const selected = new Set([identityKey(female), identityKey(male)]);
+    const roster = [female, male, { ...female, firstName: 'Unselected' }];
+
+    expect(getRelayMemberOptions(roster, selected, 'F')).toEqual([female]);
+    expect(getRelayMemberOptions(roster, selected, 'X')).toEqual([female, male]);
   });
 });
