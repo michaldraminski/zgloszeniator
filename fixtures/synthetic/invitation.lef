@@ -12,6 +12,12 @@
                 <AGEGROUP name="Synthetic Junior" agemin="12" agemax="15" />
               </AGEGROUPS>
             </EVENT>
+            <EVENT eventid="synthetic-relay-event" number="2" order="2" gender="X">
+              <SWIMSTYLE name="4x50m SF" distance="50" relaycount="4" />
+              <AGEGROUPS>
+                <AGEGROUP name="Senior" agemin="-1" agemax="-1" />
+              </AGEGROUPS>
+            </EVENT>
           </EVENTS>
         </SESSION>
       </SESSIONS>

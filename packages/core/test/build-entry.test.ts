@@ -118,4 +118,60 @@ describe('buildEntryFile', () => {
       }],
     })).toThrow('Duplicate event for athlete');
   });
+
+  it('exports a relay without relay members and keeps its selected age category', () => {
+    const meet = parseInvitation(invitationXml);
+    const archive = buildEntryFile(meet, {
+      ...sampleDraft,
+      athletes: [],
+      relays: [{
+        eventId: 'synthetic-relay-event',
+        number: 1,
+        name: 'Synthetic Senior',
+        gender: 'X',
+        ageMin: -1,
+        ageMax: -1,
+        timeCs: 12100,
+      }],
+    });
+    const { xml } = readLxf(archive);
+    const parsed = parseEntryFile(xml);
+
+    expect(xml).toContain('<RELAY gender="X" number="1" name="Synthetic Senior" agemin="-1" agemax="-1" relayid="1">');
+    expect(parsed.clubs[0].athletes).toHaveLength(0);
+    expect(parsed.clubs[0].relays).toMatchObject([{
+      name: 'Synthetic Senior',
+      gender: 'X',
+      number: 1,
+      eventId: 'synthetic-relay-event',
+      disciplineKey: '4x50m SF',
+      timeCs: 12100,
+    }]);
+    expect(xml).not.toContain('RELAYPOSITIONS');
+  });
+
+  it('rejects relay entries that reference an individual event or duplicate relay numbers', () => {
+    const meet = parseInvitation(invitationXml);
+    const draft = {
+      ...sampleDraft,
+      athletes: [],
+      relays: [{
+        eventId: 'synthetic-event-1',
+        number: 1,
+        name: 'Synthetic Relay',
+        gender: 'F' as const,
+        timeCs: 12100,
+      }],
+    };
+
+    expect(() => buildEntryFile(meet, draft)).toThrow('Unknown relay event');
+    expect(() => buildEntryFile(meet, {
+      ...sampleDraft,
+      athletes: [],
+      relays: [
+        { ...draft.relays[0], eventId: 'synthetic-relay-event', gender: 'X' as const },
+        { ...draft.relays[0], eventId: 'synthetic-relay-event', gender: 'X' as const },
+      ],
+    })).toThrow('Duplicate relay number');
+  });
 });

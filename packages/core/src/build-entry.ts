@@ -1,6 +1,6 @@
 import { encodeWindows1250, decodeWindows1250 } from './encoding';
 import { ageAt, resolveEvent } from './entry-options';
-import type { Meet, Gender } from './lenex';
+import type { Meet, Gender, EventGender } from './lenex';
 import { formatTime, parseTime } from './time';
 import { writeLxf } from './container';
 
@@ -12,12 +12,23 @@ export interface EntryDraftAthlete {
   entries: Array<{ eventId: string; timeCs: number }>;
 }
 
+export interface EntryDraftRelay {
+  eventId: string;
+  number: number;
+  name: string;
+  gender: EventGender;
+  timeCs: number;
+  ageMin?: number;
+  ageMax?: number;
+}
+
 export interface EntryFileDraft {
   club: {
     name: string;
     contact: { name: string; phone: string; email: string };
   };
   athletes: EntryDraftAthlete[];
+  relays?: EntryDraftRelay[];
 }
 
 export class EntryFileGenerationError extends Error {
@@ -48,11 +59,12 @@ function xmlAttribute(value: string): string {
 }
 
 function validateDraft(meet: Meet, draft: EntryFileDraft): void {
+  const relays = draft.relays ?? [];
   if (!draft.club.name.trim()) {
     throw new EntryFileGenerationError('Club name is required');
   }
-  if (draft.athletes.length === 0) {
-    throw new EntryFileGenerationError('At least one athlete is required');
+  if (draft.athletes.length === 0 && relays.length === 0) {
+    throw new EntryFileGenerationError('At least one athlete entry or relay is required');
   }
 
   const athleteKeys = new Set<string>();
@@ -109,6 +121,47 @@ function validateDraft(meet: Meet, draft: EntryFileDraft): void {
       disciplines.add(event.disciplineKey.toLocaleLowerCase('und'));
     }
   }
+
+  const relayNumbers = new Set<string>();
+  for (const relay of relays) {
+    if (!relay.name.trim()) {
+      throw new EntryFileGenerationError('Relay name/category is required');
+    }
+    if (!Number.isSafeInteger(relay.number) || relay.number < 1) {
+      throw new EntryFileGenerationError('Invalid relay number');
+    }
+    if (
+      !Number.isSafeInteger(relay.timeCs) ||
+      relay.timeCs < 0 ||
+      parseTime(formatTime(relay.timeCs)) !== relay.timeCs
+    ) {
+      throw new EntryFileGenerationError('Invalid relay time');
+    }
+    const event = meet.events.find((candidate) => candidate.eventId === relay.eventId);
+    if (!event || event.relayCount <= 1 || event.gender !== relay.gender) {
+      throw new EntryFileGenerationError(`Unknown relay event: ${relay.eventId}`);
+    }
+    if (relay.ageMin !== undefined && !Number.isSafeInteger(relay.ageMin)) {
+      throw new EntryFileGenerationError('Invalid relay age minimum');
+    }
+    if (relay.ageMax !== undefined && !Number.isSafeInteger(relay.ageMax)) {
+      throw new EntryFileGenerationError('Invalid relay age maximum');
+    }
+    if (
+      relay.ageMin !== undefined &&
+      relay.ageMax !== undefined &&
+      relay.ageMin >= 0 &&
+      relay.ageMax >= 0 &&
+      relay.ageMin > relay.ageMax
+    ) {
+      throw new EntryFileGenerationError('Relay age minimum exceeds maximum');
+    }
+    const numberKey = `${relay.eventId}\u0000${relay.number}`;
+    if (relayNumbers.has(numberKey)) {
+      throw new EntryFileGenerationError('Duplicate relay number');
+    }
+    relayNumbers.add(numberKey);
+  }
 }
 
 function renderClub(draft: EntryFileDraft): string {
@@ -125,6 +178,19 @@ function renderClub(draft: EntryFileDraft): string {
     ].join('\r\n');
   }).join('\r\n');
 
+  const relayList = draft.relays ?? [];
+  const relaysXml = relayList.map((relay, relayIndex) => {
+    const ageMin = relay.ageMin === undefined ? '' : ` agemin="${relay.ageMin}"`;
+    const ageMax = relay.ageMax === undefined ? '' : ` agemax="${relay.ageMax}"`;
+    return [
+      `        <RELAY gender="${relay.gender}" number="${relay.number}" name="${xmlAttribute(relay.name.trim())}"${ageMin}${ageMax} relayid="${relayIndex + 1}">`,
+      '          <ENTRIES>',
+      `            <ENTRY eventid="${xmlAttribute(relay.eventId)}" entrytime="${formatTime(relay.timeCs)}" />`,
+      '          </ENTRIES>',
+      '        </RELAY>',
+    ].join('\r\n');
+  }).join('\r\n');
+
   return [
     '  <CLUBS>',
     `    <CLUB name="${xmlAttribute(draft.club.name.trim())}">`,
@@ -132,7 +198,8 @@ function renderClub(draft: EntryFileDraft): string {
     '      <ATHLETES>',
     athletesXml,
     '      </ATHLETES>',
-    '      <RELAYS />',
+    relayList.length > 0 ? '      <RELAYS>' : '      <RELAYS />',
+    ...(relayList.length > 0 ? [relaysXml, '      </RELAYS>'] : []),
     '    </CLUB>',
     '  </CLUBS>',
   ].join('\r\n');
