@@ -2,7 +2,7 @@ import { zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 
 import { encodeWindows1250 } from '../src/encoding';
-import { readLenexFile, readLxf } from '../src/container';
+import { readLenexFile, readLxf, writeLxf } from '../src/container';
 import { detectLenexType } from '../src/lenex';
 
 const plainXml = '<?xml version="1.0" encoding="UTF-8"?><LENEX />';
@@ -22,6 +22,18 @@ describe('LENEX file containers', () => {
 
     expect(readLxf(bytes)).toEqual({ fileName: 'unexpected-name.lef', xml: plainXml });
     expect(readLenexFile('upload.lxf', bytes)).toEqual({ fileName: 'upload.lxf', xml: plainXml });
+  });
+
+  it('writes a ZIP-backed .lxf with one named .lef member', () => {
+    const bytes = new TextEncoder().encode(plainXml);
+    const archive = writeLxf('entry.lef', bytes);
+
+    expect(readLxf(archive)).toEqual({ fileName: 'entry.lef', xml: plainXml });
+  });
+
+  it('rejects unsafe entry names when writing an .lxf', () => {
+    expect(() => writeLxf('../entry.lef', new Uint8Array())).toThrow('Invalid LENEX member filename');
+    expect(() => writeLxf('entry.xml', new Uint8Array())).toThrow('Invalid LENEX member filename');
   });
 
   it('decodes Windows-1250 when declared by XML', () => {

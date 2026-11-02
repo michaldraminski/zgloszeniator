@@ -1,4 +1,5 @@
 export * from './encoding';
+export * from './build-entry';
 export * from './container';
 export * from './entry-options';
 export * from './history';

@@ -1,4 +1,4 @@
-import { unzipSync } from 'fflate';
+import { unzipSync, zipSync } from 'fflate';
 
 import { decodeWindows1250 } from './encoding';
 
@@ -61,4 +61,11 @@ export function readLenexFile(fileName: string, bytes: Uint8Array): LenexXmlFile
   }
 
   return { fileName, xml: decodeXml(bytes) };
+}
+
+export function writeLxf(fileName: string, xml: Uint8Array): Uint8Array {
+  if (!/^[^\\/]+\.lef$/i.test(fileName) || fileName === '.' || fileName === '..') {
+    throw new LenexContainerError('Invalid LENEX member filename');
+  }
+  return zipSync({ [fileName]: xml });
 }
