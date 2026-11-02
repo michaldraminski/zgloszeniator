@@ -25,6 +25,108 @@ function meetIdentity(name: string, city?: string): string {
   return `${normalize(name)}\u0000${normalize(city ?? '')}`;
 }
 
+function normalizedLocation(city: string | undefined): string | undefined {
+  const normalized = city?.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+  return normalized || undefined;
+}
+
+function eventSignature(event: {
+  sessionNumber: number;
+  number: number;
+  gender: string;
+  relayCount: number;
+}): string {
+  return [event.sessionNumber, event.number, event.gender, event.relayCount].join('|');
+}
+
+interface DisciplineInventory {
+  course: Course;
+  city?: string;
+  labelsBySignature: Map<string, string>;
+  eventSignatures: Set<string>;
+  uniqueSchedule: boolean;
+  allDisciplinesNamed: boolean;
+}
+
+function buildDisciplineInventory(meet: {
+  course: Course;
+  city?: string;
+  events: Array<{
+    sessionNumber: number;
+    number: number;
+    gender: string;
+    relayCount: number;
+    disciplineKey?: string;
+  }>;
+}): DisciplineInventory {
+  const labelsBySignature = new Map<string, string>();
+  const eventSignatures = new Set<string>();
+  let uniqueSchedule = meet.events.length > 0;
+  let allDisciplinesNamed = meet.events.length > 0;
+
+  for (const event of meet.events) {
+    const signature = eventSignature(event);
+    if (eventSignatures.has(signature)) {
+      uniqueSchedule = false;
+      continue;
+    }
+    eventSignatures.add(signature);
+    if (event.disciplineKey) {
+      labelsBySignature.set(signature, event.disciplineKey);
+    } else {
+      allDisciplinesNamed = false;
+    }
+  }
+
+  return {
+    course: meet.course,
+    city: normalizedLocation(meet.city),
+    labelsBySignature,
+    eventSignatures,
+    uniqueSchedule,
+    allDisciplinesNamed,
+  };
+}
+
+function inventoriesMatch(results: DisciplineInventory, source: DisciplineInventory): boolean {
+  if (
+    !results.uniqueSchedule ||
+    !source.uniqueSchedule ||
+    !source.allDisciplinesNamed ||
+    results.course !== source.course ||
+    !results.city ||
+    results.city !== source.city ||
+    results.eventSignatures.size !== source.eventSignatures.size
+  ) {
+    return false;
+  }
+
+  return [...results.eventSignatures].every((signature) => source.eventSignatures.has(signature));
+}
+
+function compatibleInventory(
+  results: DisciplineInventory,
+  candidates: readonly DisciplineInventory[],
+): DisciplineInventory | undefined {
+  const matches = candidates.filter((candidate) => inventoriesMatch(results, candidate));
+  const first = matches[0];
+  if (!first) {
+    return undefined;
+  }
+
+  const firstLabels = [...first.labelsBySignature.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+  const allAgree = matches.every((candidate) => {
+    const labels = [...candidate.labelsBySignature.entries()].sort(([left], [right]) =>
+      left.localeCompare(right),
+    );
+    return JSON.stringify(labels) === JSON.stringify(firstLabels);
+  });
+
+  return allAgree ? first : undefined;
+}
+
 export function collectImportedHistory(
   documents: readonly ParsedLenexDocument[],
   sourceFileNames: readonly string[] = [],
@@ -32,11 +134,16 @@ export function collectImportedHistory(
   const athletesByKey = new Map<string, IncomingAthlete>();
   const observations: ImportedTimeObservation[] = [];
   const disciplineByMeetAndEvent = new Map<string, Map<string, string | null>>();
+  const disciplineInventories: DisciplineInventory[] = [];
 
   for (const document of documents) {
     if (document.kind === 'invitation' || document.kind === 'entry') {
       const meet = document.kind === 'invitation' ? document.meet : document.entryFile.meet;
       const identity = meetIdentity(meet.name, meet.city);
+      const inventory = buildDisciplineInventory(meet);
+      if (inventory.uniqueSchedule && inventory.allDisciplinesNamed) {
+        disciplineInventories.push(inventory);
+      }
       let eventMap = disciplineByMeetAndEvent.get(identity);
       if (!eventMap) {
         eventMap = new Map();
@@ -105,14 +212,25 @@ export function collectImportedHistory(
     }
 
     if (document.kind === 'results') {
+      const resultsInventory = buildDisciplineInventory(document.results.meet);
+      const compatibleEventInventory = compatibleInventory(resultsInventory, disciplineInventories);
+      const resultEventById = new Map(
+        document.results.meet.events.map((event) => [event.eventId, event]),
+      );
       for (const athlete of document.results.athletes) {
         addAthlete(athlete);
       }
       for (const result of document.results.validResults) {
+        const event = resultEventById.get(result.eventId);
+        const signature = event ? eventSignature(event) : undefined;
+        const signatureDiscipline = signature
+          ? compatibleEventInventory?.labelsBySignature.get(signature)
+          : undefined;
         const disciplineKey = result.disciplineKey ??
           disciplineByMeetAndEvent
             .get(meetIdentity(document.results.meet.name, document.results.meet.city))
-            ?.get(result.eventId) ?? undefined;
+            ?.get(result.eventId) ??
+          signatureDiscipline ?? undefined;
         if (!disciplineKey) {
           unresolvedResultCount += 1;
           continue;

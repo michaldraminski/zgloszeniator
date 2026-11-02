@@ -60,14 +60,18 @@ describe('real LENEX sample fixtures', () => {
 
     expect(resultsDocument.kind).toBe('results');
     expect(previousEntryDocument.kind).toBe('entry');
+    if (resultsDocument.kind !== 'results') {
+      throw new Error('Expected the results fixture to be classified as results');
+    }
     const history = collectImportedHistory([previousEntryDocument, resultsDocument], [
       path.basename(previousEntryPath),
       path.basename(resultsPath),
     ]);
 
     expect(history.athletes).toHaveLength(165);
-    expect(history.observations.filter((observation) => observation.source.kind === 'result').length)
-      .toBeGreaterThan(0);
+    expect(
+      history.observations.filter((observation) => observation.source.kind === 'result'),
+    ).toHaveLength(resultsDocument.results.validResults.length);
     expect(history.unresolvedResultCount).toBe(0);
   });
 });

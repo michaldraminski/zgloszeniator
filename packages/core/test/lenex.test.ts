@@ -146,6 +146,18 @@ describe('LENEX parsers', () => {
     ]);
   });
 
+  it('parses results whose SWIMSTYLE has no name and keeps an unresolved event marker', () => {
+    const unnamedStyleResults = resultsXml.replace(
+      '<SWIMSTYLE name="50m SF" />',
+      '<SWIMSTYLE distance="50" relaycount="0" stroke="UNKNOWN" />',
+    );
+    const parsed = parseResults(unnamedStyleResults);
+
+    expect(parsed.validResults).toHaveLength(1);
+    expect(parsed.validResults[0].disciplineKey).toBeUndefined();
+    expect(parsed.validResults[0].eventId).toBe('event-1');
+  });
+
   it('finds result CLUBS as a sibling of MEETS', () => {
     const xml = `<?xml version="1.0"?>
 <LENEX version="3.0"><MEETS><MEET name="Root Clubs Meet" course="SCM">
@@ -223,6 +235,51 @@ describe('LENEX parsers', () => {
       'result',
     ]);
     expect(history.observations.map((observation) => observation.timeCs)).toEqual([3125, 3080]);
+  });
+
+  it('maps unnamed result disciplines from a complete, uniquely matching entry event list', () => {
+    const previousMeetXml = entryXml.replace(
+      'name="Synthetic Meet" course="SCM"',
+      'name="Synthetic Entry Meet" city="Olecko" course="SCM"',
+    );
+    const unnamedResultsXml = resultsXml.replace(
+      'name="Synthetic Meet" course="SCM" status="OFFICIAL"',
+      'name="Synthetic Results Meet" city="Olecko" course="SCM" status="OFFICIAL"',
+    ).replace(
+      '<SWIMSTYLE name="50m SF" />',
+      '<SWIMSTYLE distance="50" relaycount="0" stroke="UNKNOWN" />',
+    ).replace(
+      '</EVENTS></SESSION>',
+      '<EVENT eventid="event-relay" number="2" gender="X"><SWIMSTYLE distance="50" relaycount="4" stroke="UNKNOWN" /></EVENT></EVENTS></SESSION>',
+    );
+    const history = collectImportedHistory([
+      parseLenexDocument(previousMeetXml),
+      parseLenexDocument(unnamedResultsXml),
+    ]);
+    const key = identityKey({ firstName: 'Swimmer', lastName: 'Example', birthYear: 2012, gender: 'F' });
+
+    expect(history.observations).toContainEqual(
+      expect.objectContaining({
+        athleteKey: key,
+        disciplineKey: '50m SF',
+        timeCs: 3080,
+        source: expect.objectContaining({ kind: 'result' }),
+      }),
+    );
+    expect(history.unresolvedResultCount).toBe(0);
+
+    const conflictingEntry = parseLenexDocument(
+      previousMeetXml.replace('name="50m SF"', 'name="25m AP"'),
+    );
+    const ambiguousHistory = collectImportedHistory([
+      parseLenexDocument(previousMeetXml),
+      conflictingEntry,
+      parseLenexDocument(unnamedResultsXml),
+    ]);
+    expect(ambiguousHistory.unresolvedResultCount).toBe(1);
+    expect(
+      ambiguousHistory.observations.some((observation) => observation.source.kind === 'result'),
+    ).toBe(false);
   });
 
   it('prefers the newest result, then falls back to the latest previous entry', () => {
