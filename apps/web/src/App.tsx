@@ -25,6 +25,7 @@ import {
 import { pl } from './i18n/pl';
 import { filterAthletes } from './roster';
 import { relayMemberKeys, setRelayMemberAtPosition, toggleRelayMemberAssignment } from './relay-draft';
+import { normalizeTimeInput } from './time-input';
 
 type InvitationImportState =
   | { kind: 'idle' }
@@ -272,7 +273,8 @@ export default function App() {
     if (!selectedRelayChoice) {
       return;
     }
-    const timeCs = parseTime(relayForm.time);
+    const normalizedRelayTime = normalizeTimeInput(relayForm.time);
+    const timeCs = normalizedRelayTime ? parseTime(normalizedRelayTime) : null;
     if (timeCs === null) {
       setGenerationError(pl.relay.invalidTime);
       return;
@@ -831,7 +833,7 @@ export default function App() {
                               (option.suggestedTime
                                 ? formatTime(option.suggestedTime.timeCs)
                                 : '');
-                            const invalidTime = value.length > 0 && parseTime(value) === null;
+                            const invalidTime = value.length > 0 && normalizeTimeInput(value) === null;
 
                             return (
                               <div className="discipline-option" key={eventId}>
@@ -859,6 +861,12 @@ export default function App() {
                                   onChange={(event) =>
                                     updateTime(athlete.athleteKey, eventId, event.target.value)
                                   }
+                                  onBlur={() => {
+                                    const normalized = normalizeTimeInput(value);
+                                    if (normalized && normalized !== value) {
+                                      updateTime(athlete.athleteKey, eventId, normalized);
+                                    }
+                                  }}
                                 />
                                 <small className="time-source">
                                   {getSuggestedTimeLabel(option)}
@@ -922,6 +930,12 @@ export default function App() {
                       placeholder="00:00:00.00"
                       value={relayForm.time}
                       onChange={(event) => setRelayForm((current) => ({ ...current, time: event.target.value }))}
+                      onBlur={() => {
+                        const normalized = normalizeTimeInput(relayForm.time);
+                        if (normalized && normalized !== relayForm.time) {
+                          setRelayForm((current) => ({ ...current, time: normalized }));
+                        }
+                      }}
                     />
                   </label>
                   <button type="button" onClick={addRelay}>{pl.relay.add}</button>
