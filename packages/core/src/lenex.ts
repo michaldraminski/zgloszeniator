@@ -207,6 +207,11 @@ function findMeet(lenex: XmlRecord): XmlRecord {
   return meet;
 }
 
+function findClubs(lenex: XmlRecord, meet: XmlRecord): XmlRecord[] {
+  const clubsNode = child(lenex, 'CLUBS') ?? child(meet, 'CLUBS');
+  return clubsNode ? children(clubsNode.CLUB) : [];
+}
+
 function parseGender(value: string | undefined, context: string): EventGender {
   if (value === 'F' || value === 'M' || value === 'X') {
     return value;
@@ -345,10 +350,10 @@ function parseParsedEntries(container: XmlRecord | undefined, eventMap: Map<stri
 
 export function parseEntryFile(xml: string): ParsedEntryFile {
   const lenex = parseXml(xml);
-  const meet = parseMeet(xml, findMeet(lenex));
+  const meetRecord = findMeet(lenex);
+  const meet = parseMeet(xml, meetRecord);
   const eventMap = eventDisciplineMap(meet);
-  const clubsNode = child(lenex, 'CLUBS');
-  const clubs = (clubsNode ? children(clubsNode.CLUB) : []).map((club): ParsedClub => {
+  const clubs = findClubs(lenex, meetRecord).map((club): ParsedClub => {
     const contactNode = child(club, 'CONTACT');
     const athletesNode = child(club, 'ATHLETES');
     const relaysNode = child(club, 'RELAYS');
@@ -379,6 +384,9 @@ export function parseEntryFile(xml: string): ParsedEntryFile {
       relays,
     };
   });
+  if (clubs.length === 0) {
+    throw new LenexParseError('Missing CLUBS/CLUB element');
+  }
   return { meet, clubs };
 }
 
@@ -397,12 +405,12 @@ export function parseResults(xml: string): ParsedResults {
   const meetRecord = findMeet(lenex);
   const meet = parseMeet(xml, meetRecord, false);
   const eventMap = eventDisciplineMap(meet);
-  const clubsNode = child(meetRecord, 'CLUBS');
+  const clubs = findClubs(lenex, meetRecord);
   const athletes: IncomingAthlete[] = [];
   const validResults: ValidResult[] = [];
   const seenAthletes = new Set<string>();
 
-  for (const club of clubsNode ? children(clubsNode.CLUB) : []) {
+  for (const club of clubs) {
     const athletesNode = child(club, 'ATHLETES');
     for (const athleteRecord of athletesNode ? children(athletesNode.ATHLETE) : []) {
       const athlete: IncomingAthlete = {
@@ -438,6 +446,10 @@ export function parseResults(xml: string): ParsedResults {
         });
       }
     }
+  }
+
+  if (clubs.length === 0) {
+    throw new LenexParseError('Missing CLUBS/CLUB element');
   }
 
   return { meet, athletes, validResults };

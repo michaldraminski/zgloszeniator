@@ -108,6 +108,23 @@ describe('LENEX parsers', () => {
     });
   });
 
+  it('finds previous-entry CLUBS nested under MEET', () => {
+    const xml = `<?xml version="1.0"?>
+<LENEX version="2.0"><MEETS><MEET name="Nested Meet" course="SCM">
+  <AGEDATE type="YEAR" value="2026-10-25" />
+  <SESSIONS><SESSION number="1"><EVENTS>
+    <EVENT eventid="nested-event" number="1" gender="F"><SWIMSTYLE name="50m SF" /></EVENT>
+  </EVENTS></SESSION></SESSIONS>
+  <CLUBS><CLUB name="Synthetic Club"><ATHLETES>
+    <ATHLETE firstname="Example" lastname="Swimmer" birthdate="2012-01-01" gender="F">
+      <ENTRIES><ENTRY eventid="nested-event" entrytime="00:00:31.25" /></ENTRIES>
+    </ATHLETE>
+  </ATHLETES></CLUB></CLUBS>
+</MEET></MEETS></LENEX>`;
+
+    expect(parseEntryFile(xml).clubs[0].athletes).toHaveLength(1);
+  });
+
   it('uses birth year identity and returns only valid result observations', () => {
     const parsed = parseResults(resultsXml);
 
@@ -122,6 +139,23 @@ describe('LENEX parsers', () => {
         timeCs: 3080,
       }),
     ]);
+  });
+
+  it('finds result CLUBS as a sibling of MEETS', () => {
+    const xml = `<?xml version="1.0"?>
+<LENEX version="3.0"><MEETS><MEET name="Root Clubs Meet" course="SCM">
+  <SESSIONS><SESSION number="1"><EVENTS>
+    <EVENT eventid="root-event" number="1" gender="F"><SWIMSTYLE name="50m SF" /></EVENT>
+  </EVENTS></SESSION></SESSIONS>
+</MEET></MEETS><CLUBS><CLUB name="Synthetic Club"><ATHLETES>
+  <ATHLETE firstname="Example" lastname="Swimmer" birthdate="2012-01-01" gender="F">
+    <RESULTS><RESULT eventid="root-event" swimtime="00:00:30.80" /></RESULTS>
+  </ATHLETE>
+</ATHLETES></CLUB></CLUBS></LENEX>`;
+
+    const parsed = parseResults(xml);
+    expect(parsed.athletes).toHaveLength(1);
+    expect(parsed.validResults).toHaveLength(1);
   });
 
   it('rejects malformed or unsupported invitation structures', () => {
