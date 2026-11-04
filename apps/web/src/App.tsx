@@ -633,16 +633,13 @@ export default function App() {
   }
 
   const hasMeet = invitationState.kind === 'loaded';
-  const workflowSteps = [
-    { href: '#import-section', title: pl.workflow.invitation, ready: hasMeet, available: true },
-    { href: '#roster-section', title: pl.workflow.roster, ready: rosterAthletes.length > 0, available: hasMeet },
-    { href: '#entries-section', title: pl.workflow.entries, ready: totalSelectedEntryCount > 0, available: hasMeet },
-    {
+  const sectionLinks = [
+    { href: '#import-section', title: pl.workflow.invitation },
+    ...(hasMeet ? [{ href: '#roster-section', title: pl.workflow.submission }] : []),
+    ...(hasMeet ? [{
       href: '#export-section',
       title: pl.workflow.export,
-      ready: generatedDownload !== null,
-      available: hasMeet,
-    },
+    }] : []),
   ];
 
   async function loadInvitation(file: File): Promise<void> {
@@ -712,23 +709,10 @@ export default function App() {
         <span className="local-badge">{pl.workflow.localBadge}</span>
       </header>
 
-      <nav className="workflow-nav" aria-label={pl.workflow.label}>
-        {workflowSteps.map((step, index) => (
-          <a
-            className={`workflow-step${step.ready ? ' workflow-step-ready' : ''}${step.available ? '' : ' workflow-step-disabled'}`}
-            href={step.href}
-            aria-disabled={!step.available}
-            key={step.href}
-            onClick={(event) => {
-              if (!step.available) event.preventDefault();
-            }}
-          >
-            <span className="workflow-step-number">{String(index + 1).padStart(2, '0')}</span>
-            <span className="workflow-step-copy">
-              <strong>{step.title}</strong>
-              <small>{step.ready ? pl.workflow.ready : pl.workflow.pending}</small>
-            </span>
-            <span className="workflow-step-mark" aria-hidden="true">{step.ready ? '✓' : '·'}</span>
+      <nav className="section-nav" aria-label={pl.workflow.label}>
+        {sectionLinks.map((section) => (
+          <a className="section-nav-link" href={section.href} key={section.href}>
+            {section.title}
           </a>
         ))}
       </nav>
@@ -1185,16 +1169,6 @@ export default function App() {
                                   <div className="time-adjustment-controls">
                                     <button
                                       type="button"
-                                      aria-label={`${pl.fileImport.roundTimeDown} — ${athlete.athlete.lastName}, ${option.event.disciplineKey}`}
-                                      title={pl.fileImport.roundTimeDown}
-                                      disabled={!checked || parseSwimTimeInput(value) === null}
-                                      onClick={() => {
-                                        const adjusted = adjustSwimTimeToSecond(value, 'down');
-                                        if (adjusted !== null) updateTime(athlete.athleteKey, eventId, adjusted);
-                                      }}
-                                    >−</button>
-                                    <button
-                                      type="button"
                                       aria-label={`${pl.fileImport.roundTimeUp} — ${athlete.athlete.lastName}, ${option.event.disciplineKey}`}
                                       title={pl.fileImport.roundTimeUp}
                                       disabled={!checked || parseSwimTimeInput(value) === null}
@@ -1203,6 +1177,30 @@ export default function App() {
                                         if (adjusted !== null) updateTime(athlete.athleteKey, eventId, adjusted);
                                       }}
                                     >+</button>
+                                    <button
+                                      type="button"
+                                      aria-label={`${pl.fileImport.roundTimeDown} — ${athlete.athlete.lastName}, ${option.event.disciplineKey}`}
+                                      title={pl.fileImport.roundTimeDown}
+                                      disabled={!checked || parseSwimTimeInput(value) === null}
+                                      onClick={() => {
+                                        const adjusted = adjustSwimTimeToSecond(value, 'down');
+                                        if (adjusted !== null) updateTime(athlete.athleteKey, eventId, adjusted);
+                                      }}
+                                    >−</button>
+                                    {option.suggestedTime && (
+                                      <button
+                                        className="time-reset-button"
+                                        type="button"
+                                        aria-label={`${pl.fileImport.restoreSuggestedTime} — ${athlete.athlete.lastName}, ${option.event.disciplineKey}`}
+                                        title={pl.fileImport.restoreSuggestedTime}
+                                        disabled={!checked}
+                                        onClick={() => updateTime(
+                                          athlete.athleteKey,
+                                          eventId,
+                                          formatSwimTime(option.suggestedTime!.timeCs),
+                                        )}
+                                      >↶</button>
+                                    )}
                                   </div>
                                 </div>
                                 <small className="time-source">
@@ -1283,16 +1281,6 @@ export default function App() {
                       <div className="time-adjustment-controls">
                         <button
                           type="button"
-                          aria-label={pl.fileImport.roundTimeDown}
-                          title={pl.fileImport.roundTimeDown}
-                          disabled={parseSwimTimeInput(relayForm.time) === null}
-                          onClick={() => {
-                            const adjusted = adjustSwimTimeToSecond(relayForm.time, 'down');
-                            if (adjusted !== null) setRelayForm((current) => ({ ...current, time: adjusted }));
-                          }}
-                        >−</button>
-                        <button
-                          type="button"
                           aria-label={pl.fileImport.roundTimeUp}
                           title={pl.fileImport.roundTimeUp}
                           disabled={parseSwimTimeInput(relayForm.time) === null}
@@ -1301,6 +1289,16 @@ export default function App() {
                             if (adjusted !== null) setRelayForm((current) => ({ ...current, time: adjusted }));
                           }}
                         >+</button>
+                        <button
+                          type="button"
+                          aria-label={pl.fileImport.roundTimeDown}
+                          title={pl.fileImport.roundTimeDown}
+                          disabled={parseSwimTimeInput(relayForm.time) === null}
+                          onClick={() => {
+                            const adjusted = adjustSwimTimeToSecond(relayForm.time, 'down');
+                            if (adjusted !== null) setRelayForm((current) => ({ ...current, time: adjusted }));
+                          }}
+                        >−</button>
                       </div>
                     </div>
                   </label>
