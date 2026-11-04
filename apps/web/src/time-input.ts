@@ -66,6 +66,30 @@ export function displaySwimTimeInput(value: string): string {
     : value;
 }
 
+export interface SwimTimeSegments {
+  minutes: string;
+  seconds: string;
+  centiseconds: string;
+}
+
+/** Split a full, legacy, or actively edited time value into independent UI segments. */
+export function splitSwimTimeInput(value: string): SwimTimeSegments {
+  const legacyDisplayValue = displaySwimTimeInput(value.trim());
+  const match = /^(\d{0,4}):(\d{0,2})\.(\d{0,2})$/.exec(legacyDisplayValue);
+  if (match) {
+    return { minutes: match[1], seconds: match[2], centiseconds: match[3] };
+  }
+
+  const normalized = normalizeSwimTimeInput(legacyDisplayValue);
+  if (normalized) {
+    const [minutes, rest] = normalized.split(':');
+    const [seconds, centiseconds] = rest.split('.');
+    return { minutes, seconds, centiseconds };
+  }
+
+  return { minutes: '', seconds: '', centiseconds: '' };
+}
+
 export function parseSwimTimeInput(value: string): number | null {
   const normalized = normalizeSwimTimeInput(value);
   if (!normalized) return null;

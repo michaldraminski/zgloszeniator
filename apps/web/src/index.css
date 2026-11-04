@@ -763,15 +763,6 @@ hr {
   cursor: pointer;
 }
 
-.time-input {
-  width: 100%;
-  min-height: 2.25rem;
-  padding: 0.4rem 0.55rem;
-  border: 1px solid #94a3b8;
-  border-radius: 0.4rem;
-  font: inherit;
-}
-
 .time-field {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -785,16 +776,115 @@ hr {
   align-items: center;
 }
 
-.time-input {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+.relay-time-field {
+  display: grid;
+  gap: 0.3rem;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 650;
 }
 
-.time-unit-hint {
+.time-segments {
+  display: inline-flex;
+  min-height: 3.2rem;
+  align-items: flex-end;
+  gap: 0.1rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.25rem 0.45rem 0.2rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.time-segments:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px #bfdbfe;
+}
+
+.time-segments-invalid {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.time-segments-invalid:focus-within {
+  box-shadow: 0 0 0 3px #fecaca;
+}
+
+.time-segments:has(input:disabled) {
+  background: #f1f5f9;
   color: #64748b;
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
+}
+
+.time-segment {
+  display: grid !important;
+  grid-template-rows: 0.75rem 1.65rem;
+  justify-items: center;
+  gap: 0.05rem !important;
+  min-width: 0;
+  margin: 0;
+  color: inherit;
+  cursor: text !important;
+}
+
+.time-segment-unit {
+  color: #64748b;
+  font-size: 0.59rem;
+  font-weight: 550;
+  line-height: 1;
+}
+
+.time-segment-input {
+  width: 3.1ch;
+  min-width: 2.1ch;
+  height: 1.65rem;
+  padding: 0 0.05rem;
+  border: 0;
+  border-radius: 0.25rem;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.time-segment-minutes {
+  width: 5.2ch;
+  min-width: 2.1ch;
+  max-width: 5.2ch;
+}
+
+.time-segment-short {
+  width: 2.5ch;
+  min-width: 2.5ch;
+}
+
+.time-segment-input::placeholder {
+  color: #94a3b8;
+  opacity: 0.75;
+}
+
+.time-segment-input:focus {
+  background: #eff6ff;
+}
+
+.time-segment-input:disabled {
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.time-segment-separator {
+  align-self: end;
+  padding-bottom: 0.17rem;
+  color: #64748b;
+  font-size: 1rem;
+  font-weight: 650;
 }
 
 .time-adjustment-controls {
@@ -833,16 +923,6 @@ hr {
   font-size: 1rem;
 }
 
-.time-input:disabled {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.time-input-invalid {
-  border-color: #dc2626;
-  background: #fef2f2;
-}
-
 .time-source {
   color: #475569;
   font-size: 0.75rem;
@@ -850,8 +930,11 @@ hr {
 }
 
 .time-error {
+  display: block;
+  margin-top: 0.1rem;
   color: #b91c1c;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 550;
 }
 
 .submission-summary {

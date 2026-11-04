@@ -1,5 +1,5 @@
 export const pl = {
-  title: 'Lenex Entries',
+  title: 'Zgłoszeniator',
   appDescription:
     'Narzędzie do obsługi list startowych, historii wyników i eksportu zgłoszeń LENEX w trybie lokalnym.',
   workflow: {
@@ -137,9 +137,7 @@ export const pl = {
     selectedAthletes: 'Wybrani zawodnicy',
     selectedEntries: 'Wybrane zgłoszenia',
     noEligibleEvents: 'Brak konkurencji dla wieku i płci tego zawodnika.',
-    manualTimeHint: 'Minuty : sekundy . setne sekundy, np. 1:02.34. Możesz wpisać też 10234.',
-    invalidTime: 'Nieprawidłowy czas. Wpisz min:sek.setne, np. 1:02.34.',
-    timeUnitHint: 'min : sek . setne',
+    invalidTime: 'Uzupełnij poprawnie minuty, sekundy i setne sekundy.',
     resultSource: 'Wynik',
     entrySource: 'Poprzednie zgłoszenie',
     importedDate: 'data zawodów',

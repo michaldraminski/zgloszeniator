@@ -1,10 +1,10 @@
-# LENEX Entries
+# Zgłoszeniator
 
 Lokalna aplikacja internetowa do przygotowywania zgłoszeń na zawody pływackie i w pływaniu w płetwach. Wczytaj zaproszenie LENEX, wykorzystaj zawodników i czasy z wcześniejszych zgłoszeń lub wyników, wybierz starty i pobierz plik zgłoszenia klubu.
 
 ## Aplikacja online
 
-[Otwórz LENEX Entries w GitHub Pages](https://michaldraminski.github.io/zgloszeniator/)
+[Otwórz Zgłoszeniator w GitHub Pages](https://michaldraminski.github.io/zgloszeniator/)
 
 Strona jest publikowana z gałęzi `main` przez GitHub Actions. Aplikację można otworzyć bez instalowania programu; dane zgłoszeń pozostają lokalnie w przeglądarce.
 

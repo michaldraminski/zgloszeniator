@@ -38,6 +38,8 @@
 - [x] Redesign individual and relay time entry to show `minutes : seconds . centiseconds`; export remains integer centiseconds/LENEX `hh:mm:ss.cc`.
 - [x] Keep rounding actions alongside the input and test empty, malformed, boundary, and long-duration inputs.
 - [x] Preserve long durations without truncation and reject values beyond the current LENEX parser's 99:59:59.99 representable range.
+- [x] Replace free-form time text with separate editable minute/second/centisecond segments; keep separators fixed and remove the long instructional note.
+- [x] Rename the visible application title to “Zgłoszeniator”.
 
 ## UI polish: print/PDF action
 

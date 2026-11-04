@@ -36,21 +36,35 @@ test('creates a submission and reuses it as history for the next meet', async ({
   const athleteCheckbox = page.getByRole('checkbox', { name: /Swimmer, Example \(2012\)/ });
   await expect(athleteCheckbox).toBeVisible();
   await athleteCheckbox.check();
+  const entryMinutesInput = page.getByRole('textbox', { name: 'Minuty — 50m SF — Swimmer, Example', exact: true });
+  await expect(entryMinutesInput).toHaveValue('00');
 
   await page.getByRole('button', { name: 'Usuń z historii: results.lef' }).click();
   await expect(page.getByText(/Wyniki — results\.lef/)).toHaveCount(0);
-  await expect(page.getByRole('textbox', { name: 'Czas dla 50m SF — Swimmer' })).toHaveValue('00:31.25');
+  await expect(entryMinutesInput).toHaveValue('00');
 
   await selectFiles(page, 'Dodaj zgłoszenie, wyniki lub zaproszenie', [resultsPath]);
   await expect(page.getByText(/Wyniki — results\.lef/)).toBeVisible();
 
-  const timeInput = page.getByRole('textbox', { name: 'Czas dla 50m SF — Swimmer' });
-  await expect(timeInput).toHaveValue('00:29.90');
+  const minutesInput = page.getByRole('textbox', { name: 'Minuty — 50m SF — Swimmer, Example', exact: true });
+  const secondsInput = page.getByRole('textbox', { name: 'Sekundy — 50m SF — Swimmer, Example', exact: true });
+  const centisecondsInput = page.getByRole('textbox', { name: 'Setne sekundy — 50m SF — Swimmer, Example', exact: true });
+  await expect(minutesInput).toHaveValue('00');
+  await expect(secondsInput).toHaveValue('29');
+  await expect(centisecondsInput).toHaveValue('90');
   await expect(page.getByText(/Wynik · results\.lef/)).toBeVisible();
-  await timeInput.fill('1:');
-  await expect(page.locator('.time-field').getByText(/Nieprawidłowy czas/)).toBeVisible();
-  await timeInput.fill('1:02.34');
-  await expect(page.locator('.time-field').getByText(/Nieprawidłowy czas/)).toHaveCount(0);
+  await secondsInput.press('Home');
+  await secondsInput.press('4');
+  await expect(secondsInput).toHaveValue('49');
+  await secondsInput.press('Home');
+  await secondsInput.press('2');
+  await expect(secondsInput).toHaveValue('29');
+  await secondsInput.fill('77');
+  await expect(page.locator('.time-field').getByText('Uzupełnij poprawnie minuty, sekundy i setne sekundy.')).toBeVisible();
+  await secondsInput.fill('02');
+  await minutesInput.fill('1');
+  await centisecondsInput.fill('34');
+  await expect(page.locator('.time-field').getByText('Uzupełnij poprawnie minuty, sekundy i setne sekundy.')).toHaveCount(0);
 
   await page.getByLabel('Nazwa klubu').fill('Synthetic Club');
   await page.emulateMedia({ media: 'print' });
@@ -89,8 +103,12 @@ test('creates a submission and reuses it as history for the next meet', async ({
     await expect(nextAthleteCheckbox).toBeVisible();
     await nextAthleteCheckbox.check();
 
-    const nextTimeInput = nextPage.getByRole('textbox', { name: 'Czas dla 50m SF — Swimmer' });
-    await expect(nextTimeInput).toHaveValue('01:02.34');
+    const nextMinutesInput = nextPage.getByRole('textbox', { name: 'Minuty — 50m SF — Swimmer, Example', exact: true });
+    const nextSecondsInput = nextPage.getByRole('textbox', { name: 'Sekundy — 50m SF — Swimmer, Example', exact: true });
+    const nextCentisecondsInput = nextPage.getByRole('textbox', { name: 'Setne sekundy — 50m SF — Swimmer, Example', exact: true });
+    await expect(nextMinutesInput).toHaveValue('01');
+    await expect(nextSecondsInput).toHaveValue('02');
+    await expect(nextCentisecondsInput).toHaveValue('34');
     await expect(nextPage.getByText(/Poprzednie zgłoszenie ·/)).toBeVisible();
     await nextPage.getByLabel('Nazwa klubu').fill('Synthetic Club');
     const nextDownloadPromise = nextPage.waitForEvent('download');

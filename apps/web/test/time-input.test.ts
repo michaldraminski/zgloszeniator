@@ -8,6 +8,7 @@ import {
   normalizeSwimTimeInput,
   normalizeTimeInput,
   parseSwimTimeInput,
+  splitSwimTimeInput,
 } from '../src/time-input';
 
 describe('normalizeTimeInput', () => {
@@ -59,6 +60,13 @@ describe('swim time input', () => {
     expect(displaySwimTimeInput('01:02.3')).toBe('01:02.3');
     expect(displaySwimTimeInput('01:02')).toBe('01:02');
     expect(displaySwimTimeInput('00:01:02.34')).toBe('01:02.34');
+  });
+
+  it('splits the control into editable digit groups and preserves partial segments', () => {
+    expect(splitSwimTimeInput('01:02.34')).toEqual({ minutes: '01', seconds: '02', centiseconds: '34' });
+    expect(splitSwimTimeInput('1:02.3')).toEqual({ minutes: '1', seconds: '02', centiseconds: '3' });
+    expect(splitSwimTimeInput('754:56.78')).toEqual({ minutes: '754', seconds: '56', centiseconds: '78' });
+    expect(splitSwimTimeInput('00:01:02.34')).toEqual({ minutes: '01', seconds: '02', centiseconds: '34' });
   });
 
   it('uses minutes, seconds, and centiseconds without displaying hours', () => {

@@ -26,13 +26,14 @@ import {
 import { pl } from './i18n/pl';
 import { filterAthletes } from './roster';
 import { addUniqueHistoricalFiles, type HistoricalFileInput } from './file-import';
+import { SwimTimeInput } from './SwimTimeInput';
 import { relayMemberKeys, setRelayMemberAtPosition, toggleRelayMemberAssignment } from './relay-draft';
 import {
   adjustSwimTimeToSecond,
   displaySwimTimeInput,
   formatSwimTime,
-  normalizeSwimTimeInput,
   parseSwimTimeInput,
+  splitSwimTimeInput,
 } from './time-input';
 import {
   loadAppSnapshot,
@@ -123,9 +124,7 @@ function getDocumentSummary(document: ParsedLenexDocument): string {
 
 function getSuggestedTimeLabel(option: AthleteEventOption): string {
   const suggestion = option.suggestedTime;
-  if (!suggestion) {
-    return pl.fileImport.manualTimeHint;
-  }
+  if (!suggestion) return '';
 
   const sourceLabel =
     suggestion.source.kind === 'result' ? pl.fileImport.resultSource : pl.fileImport.entrySource;
@@ -1129,7 +1128,13 @@ export default function App() {
                             const value = editedValue === undefined
                               ? (option.suggestedTime ? formatSwimTime(option.suggestedTime.timeCs) : '')
                               : displaySwimTimeInput(editedValue);
-                            const invalidTime = value.length > 0 && parseSwimTimeInput(value) === null;
+                            const timeSegments = splitSwimTimeInput(value);
+                            const completeTime = Boolean(
+                              timeSegments.minutes && timeSegments.seconds && timeSegments.centiseconds,
+                            );
+                            const invalidTime = (
+                              completeTime && parseSwimTimeInput(value) === null
+                            ) || Number(timeSegments.minutes) > 5999 || Number(timeSegments.seconds) > 59;
 
                             return (
                               <div className="discipline-option" key={eventId}>
@@ -1145,35 +1150,23 @@ export default function App() {
                                     {option.event.number}. {option.event.disciplineKey}
                                   </span>
                                 </label>
-                                <div className="time-control">
-                                  <div className="time-field">
-                                    <input
-                                      className={invalidTime ? 'time-input time-input-invalid' : 'time-input'}
-                                      type="text"
-                                      inputMode="decimal"
-                                      aria-invalid={invalidTime}
-                                      aria-describedby={invalidTime ? `time-error-${athlete.athleteKey}-${eventId}` : undefined}
-                                      aria-label={`${pl.fileImport.timeFor} ${option.event.disciplineKey} — ${athlete.athlete.lastName}`}
-                                      placeholder="00:00.00"
-                                      value={value}
-                                      disabled={!checked}
-                                      onChange={(event) =>
-                                        updateTime(athlete.athleteKey, eventId, event.target.value)
-                                      }
-                                      onBlur={() => {
-                                        const normalized = normalizeSwimTimeInput(value);
-                                        if (normalized && normalized !== value) {
-                                          updateTime(athlete.athleteKey, eventId, normalized);
-                                        }
-                                      }}
-                                    />
-                                    <small className="time-unit-hint">{pl.fileImport.timeUnitHint}</small>
-                                    {invalidTime && (
-                                      <small className="time-error" id={`time-error-${athlete.athleteKey}-${eventId}`}>
-                                        {pl.fileImport.invalidTime}
-                                      </small>
-                                    )}
-                                  </div>
+                                  <div className="time-control">
+                                    <div className="time-field">
+                                      <SwimTimeInput
+                                        value={value}
+                                        disabled={!checked}
+                                        invalid={invalidTime}
+                                        errorId={`time-error-${athlete.athleteKey}-${eventId}`}
+                                        athleteLabel={`${athlete.athlete.lastName}, ${athlete.athlete.firstName}`}
+                                        disciplineLabel={option.event.disciplineKey ?? ''}
+                                        onChange={(nextValue) => updateTime(athlete.athleteKey, eventId, nextValue)}
+                                      />
+                                      {invalidTime && (
+                                        <small className="time-error" role="alert" id={`time-error-${athlete.athleteKey}-${eventId}`}>
+                                          {pl.fileImport.invalidTime}
+                                        </small>
+                                      )}
+                                    </div>
                                   <div className="time-adjustment-controls">
                                     <button
                                       type="button"
@@ -1211,9 +1204,9 @@ export default function App() {
                                     )}
                                   </div>
                                 </div>
-                                <small className="time-source">
-                                  {getSuggestedTimeLabel(option)}
-                                </small>
+                                {option.suggestedTime && (
+                                  <small className="time-source">{getSuggestedTimeLabel(option)}</small>
+                                )}
                               </div>
                             );
                           })}
@@ -1262,26 +1255,16 @@ export default function App() {
                       onChange={(event) => setRelayForm((current) => ({ ...current, name: event.target.value }))}
                     />
                   </label>
-                  <label>
+                  <div className="relay-time-field">
                     <span>{pl.relay.time}</span>
                     <div className="time-control">
                       <div className="time-field">
-                        <input
-                          className="time-input"
-                          type="text"
-                          inputMode="decimal"
-                          aria-label={pl.relay.time}
-                          placeholder="00:00.00"
+                        <SwimTimeInput
                           value={relayForm.time}
-                          onChange={(event) => setRelayForm((current) => ({ ...current, time: event.target.value }))}
-                          onBlur={() => {
-                            const normalized = normalizeSwimTimeInput(relayForm.time);
-                            if (normalized && normalized !== relayForm.time) {
-                              setRelayForm((current) => ({ ...current, time: normalized }));
-                            }
-                          }}
+                          athleteLabel={pl.relay.time}
+                          disciplineLabel={selectedRelayChoice?.disciplineKey ?? pl.relay.heading}
+                          onChange={(time) => setRelayForm((current) => ({ ...current, time }))}
                         />
-                        <small className="time-unit-hint">{pl.fileImport.timeUnitHint}</small>
                       </div>
                       <div className="time-adjustment-controls">
                         <button
@@ -1306,7 +1289,7 @@ export default function App() {
                         >−</button>
                       </div>
                     </div>
-                  </label>
+                  </div>
                   <button type="button" onClick={addRelay}>{pl.relay.add}</button>
                 </div>
                 {relayDrafts.length > 0 && (
