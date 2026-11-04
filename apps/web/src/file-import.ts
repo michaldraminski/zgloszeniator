@@ -16,7 +16,7 @@ export function addUniqueHistoricalFiles(
   incoming: readonly HistoricalFileInput[],
 ): UniqueHistoricalFiles {
   const fingerprints = new Set(current.map(({ document }) => JSON.stringify(document)));
-  const files: HistoricalFileInput[] = [];
+  const files: HistoricalFileInput[] = [...current];
   const duplicateFileNames: string[] = [];
 
   for (const file of incoming) {
