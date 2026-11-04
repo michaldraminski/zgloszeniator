@@ -12,6 +12,7 @@ import {
   buildAthleteEventOptions,
   getRelayMemberOptions,
   getRelayAgeWarnings,
+  getClubMismatch,
   resolveEvent,
   UnsupportedAgeDateType,
 } from '../src/index';
@@ -169,6 +170,36 @@ describe('LENEX parsers', () => {
     ]);
   });
 
+  it('keeps same-name athletes distinct when their birth years differ across clubs', () => {
+    const sameNameResultsXml = `<?xml version="1.0"?>
+<LENEX version="3.0"><MEETS><MEET name="Synthetic Meet" course="SCM">
+  <SESSIONS><SESSION number="1"><EVENTS>
+    <EVENT eventid="event-1" number="1" gender="M"><SWIMSTYLE name="50m Freestyle" /></EVENT>
+  </EVENTS></SESSION></SESSIONS>
+</MEET></MEETS><CLUBS>
+  <CLUB name="Synthetic Club One"><ATHLETES>
+    <ATHLETE firstname="Alex" lastname="Example" birthdate="2012-01-01" gender="M">
+      <RESULTS><RESULT eventid="event-1" swimtime="00:00:30.00" /></RESULTS>
+    </ATHLETE>
+  </ATHLETES></CLUB>
+  <CLUB name="Synthetic Club Two"><ATHLETES>
+    <ATHLETE firstname="Alex" lastname="Example" birthdate="2008-01-01" gender="M">
+      <RESULTS><RESULT eventid="event-1" swimtime="00:00:25.00" /></RESULTS>
+    </ATHLETE>
+  </ATHLETES></CLUB>
+</CLUBS></LENEX>`;
+    const history = collectImportedHistory([parseLenexDocument(sameNameResultsXml)]);
+    const youngerKey = identityKey({ firstName: 'Alex', lastName: 'Example', birthYear: 2012, gender: 'M' });
+    const olderKey = identityKey({ firstName: 'Alex', lastName: 'Example', birthYear: 2008, gender: 'M' });
+
+    expect(history.athletes).toHaveLength(2);
+    expect(history.clubNamesByAthleteKey.get(youngerKey)).toEqual(['Synthetic Club One']);
+    expect(history.clubNamesByAthleteKey.get(olderKey)).toEqual(['Synthetic Club Two']);
+    expect(history.observations.map((observation) => observation.athleteKey).sort()).toEqual(
+      [olderKey, youngerKey].sort(),
+    );
+  });
+
   it('parses results whose SWIMSTYLE has no name and keeps an unresolved event marker', () => {
     const unnamedStyleResults = resultsXml.replace(
       '<SWIMSTYLE name="50m SF" />',
@@ -305,32 +336,48 @@ describe('LENEX parsers', () => {
     ).toBe(false);
   });
 
-  it('prefers the newest result, then falls back to the latest previous entry', () => {
+  it('prefers the best result from the previous 12 months, then falls back to the latest entry', () => {
     const previousEntryXml = entryXml
       .replace('name="Synthetic Meet" course="SCM"', 'name="Synthetic Meet" course="SCM" date="2026-11-01"');
-    const olderResultXml = resultsXml
+    const bestResultXml = resultsXml
       .replace('name="Synthetic Meet" course="SCM" status="OFFICIAL"', 'name="Synthetic Meet" course="SCM" date="2026-10-01" status="OFFICIAL"')
       .replace('swimtime="00:00:30.80"', 'swimtime="00:00:20.00"');
     const newestResultXml = resultsXml
       .replace('name="Synthetic Meet" course="SCM" status="OFFICIAL"', 'name="Synthetic Meet" course="SCM" date="2026-10-20" status="OFFICIAL"')
       .replace('swimtime="00:00:30.80"', 'swimtime="00:00:29.50"');
+    const outOfWindowResultXml = resultsXml
+      .replace('name="Synthetic Meet" course="SCM" status="OFFICIAL"', 'name="Synthetic Meet" course="SCM" date="2025-10-19" status="OFFICIAL"')
+      .replace('swimtime="00:00:30.80"', 'swimtime="00:00:10.00"');
     const history = collectImportedHistory([
       parseLenexDocument(previousEntryXml),
-      parseLenexDocument(olderResultXml),
+      parseLenexDocument(bestResultXml),
       parseLenexDocument(newestResultXml),
+      parseLenexDocument(outOfWindowResultXml),
     ]);
     const key = identityKey({ firstName: 'Swimmer', lastName: 'Example', birthYear: 2012, gender: 'F' });
 
-    expect(suggestImportedTime(history, key, '50m SF', 'SCM')).toMatchObject({
-      timeCs: 2950,
-      source: { kind: 'result', meetDate: '2026-10-20' },
+    expect(suggestImportedTime(history, key, '50m SF', 'SCM', '2026-10-25')).toMatchObject({
+      timeCs: 2000,
+      source: { kind: 'result', meetDate: '2026-10-01' },
     });
 
-    const entryOnlyHistory = collectImportedHistory([parseLenexDocument(entryXml)]);
-    expect(suggestImportedTime(entryOnlyHistory, key, '50m SF', 'SCM')).toMatchObject({
+    const entryFallbackHistory = collectImportedHistory([
+      parseLenexDocument(entryXml),
+      parseLenexDocument(outOfWindowResultXml),
+    ]);
+    expect(suggestImportedTime(entryFallbackHistory, key, '50m SF', 'SCM', '2026-10-25')).toMatchObject({
       timeCs: 3125,
       source: { kind: 'entry' },
     });
+  });
+
+  it('warns only when known historical club names do not match the selected club', () => {
+    expect(getClubMismatch(['  Synthetic   Club '], 'synthetic club')).toEqual([]);
+    expect(getClubMismatch(['Synthetic Club', 'Synthetic C.'], 'Other Club')).toEqual([
+      'Synthetic Club',
+      'Synthetic C.',
+    ]);
+    expect(getClubMismatch(['Synthetic Club'], '')).toEqual([]);
   });
 
   it('builds age-eligible individual event choices with suggested history times', () => {
@@ -354,6 +401,21 @@ describe('LENEX parsers', () => {
     expect(buildAthleteEventOptions(meet, history, new Set(['not-an-athlete']))).toEqual([]);
     expect(resolveEvent(meet, 'F', '50m SF', 14)?.eventId).toBe('event-1');
     expect(resolveEvent(meet, 'F', '50m SF', 30)).toBeUndefined();
+  });
+
+  it('resolves individual events only for the athlete gender', () => {
+    const meet = parseInvitation(invitationXml);
+    const maleMeet = {
+      ...meet,
+      events: meet.events.map((event) =>
+        event.eventId === 'event-1' ? { ...event, gender: 'M' as const } : event,
+      ),
+    };
+
+    expect(resolveEvent(meet, 'F', '50m SF', 14)?.eventId).toBe('event-1');
+    expect(resolveEvent(meet, 'M', '50m SF', 14)).toBeUndefined();
+    expect(resolveEvent(maleMeet, 'M', '50m SF', 14)?.eventId).toBe('event-1');
+    expect(resolveEvent(maleMeet, 'F', '50m SF', 14)).toBeUndefined();
   });
 
   it('calculates competition age from the invitation age date rather than the current year', () => {

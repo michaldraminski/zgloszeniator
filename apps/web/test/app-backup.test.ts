@@ -55,4 +55,31 @@ describe('app backup validation', () => {
 
     expect(() => parseAppBackup(JSON.stringify(backup))).toThrow(BackupValidationError);
   });
+
+  it('restores older result backups without athlete-club metadata', () => {
+    const legacyBackup = {
+      format: 'lenex-entries-backup',
+      version: 1,
+      snapshot: {
+        ...snapshot,
+        historicalFiles: [{
+          fileName: 'synthetic-results.lef',
+          document: {
+            kind: 'results',
+            results: {
+              meet: snapshot.invitation!.meet,
+              athletes: [],
+              validResults: [],
+            },
+          },
+        }],
+      },
+    };
+
+    const restored = parseAppBackup(JSON.stringify(legacyBackup));
+    expect(restored.historicalFiles[0].document).toMatchObject({
+      kind: 'results',
+      results: { athleteClubs: [] },
+    });
+  });
 });

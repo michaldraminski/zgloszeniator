@@ -73,6 +73,10 @@ const historicalDocumentSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('results'), results: z.object({
     meet: meetSchema,
     athletes: z.array(incomingAthleteSchema),
+    athleteClubs: z.array(z.object({
+      athlete: incomingAthleteSchema,
+      clubName: z.string().optional(),
+    }).strict()).default([]),
     validResults: z.array(z.object({
       athlete: incomingAthleteSchema,
       eventId: z.string(),

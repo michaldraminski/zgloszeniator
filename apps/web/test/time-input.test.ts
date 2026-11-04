@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { normalizeTimeInput } from '../src/time-input';
+import { adjustTimeToSecond, normalizeTimeInput } from '../src/time-input';
 
 describe('normalizeTimeInput', () => {
   it('accepts canonical LENEX times unchanged', () => {
@@ -25,5 +25,23 @@ describe('normalizeTimeInput', () => {
     expect(normalizeTimeInput('77.22')).toBeNull();
     expect(normalizeTimeInput('1:2:3')).toBeNull();
     expect(normalizeTimeInput('123456789')).toBeNull();
+  });
+});
+
+describe('adjustTimeToSecond', () => {
+  it('rounds fractional times up or down to a whole second', () => {
+    expect(adjustTimeToSecond('1:02.34', 'up')).toBe('00:01:03.00');
+    expect(adjustTimeToSecond('1:02.34', 'down')).toBe('00:01:02.00');
+  });
+
+  it('moves an already rounded time by one second and never goes below zero', () => {
+    expect(adjustTimeToSecond('00:00:12.00', 'up')).toBe('00:00:13.00');
+    expect(adjustTimeToSecond('00:00:12.00', 'down')).toBe('00:00:11.00');
+    expect(adjustTimeToSecond('00:00:00.00', 'down')).toBe('00:00:00.00');
+  });
+
+  it('does not alter empty or invalid input', () => {
+    expect(adjustTimeToSecond('', 'up')).toBeNull();
+    expect(adjustTimeToSecond('not a time', 'down')).toBeNull();
   });
 });

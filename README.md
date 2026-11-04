@@ -14,8 +14,11 @@ Projekt jest w trakcie rozwoju. Przed użyciem plików na prawdziwych zawodach z
 
 - Wczytywanie plików `.lef` oraz archiwów `.lxf`.
 - Import wcześniejszych zgłoszeń i ważnych wyników jako historii zawodników i czasów.
-- Podpowiadanie czasów oraz ich ręczna, wygodna edycja.
+- Podpowiadanie najlepszego ważnego wyniku z ostatnich 12 miesięcy (domyślnie) oraz ręczna edycja czasu.
+- Ostrzeżenie, gdy w historii zawodnik figuruje w klubie innym niż wpisany do zgłoszenia.
+- Przyciski zaokrąglania czasu w górę lub w dół do pełnej sekundy.
 - Dodawanie sztafet i opcjonalne przypisywanie zawodników do zmian.
+- Podsumowanie wybranych startów do wydruku lub zapisania jako PDF przed eksportem.
 - Eksport pliku `.lxf` w formacie LENEX 2.0 / Windows-1250.
 - Automatyczny zapis bieżącego zgłoszenia w pamięci przeglądarki IndexedDB.
 - Opcjonalny eksport i przywracanie kopii JSON w zwijanej sekcji ustawień zaawansowanych.

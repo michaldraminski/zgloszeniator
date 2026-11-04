@@ -752,6 +752,16 @@ hr {
   font-weight: 700;
 }
 
+.club-mismatch-warning {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #facc15;
+  border-radius: 0.55rem;
+  background: #fefce8;
+  color: #854d0e;
+  font-size: 0.85rem;
+}
+
 .discipline-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -783,6 +793,40 @@ hr {
   font: inherit;
 }
 
+.time-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.time-adjustment-controls {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.time-adjustment-controls button {
+  min-width: 2.2rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.4rem;
+  background: #f8fafc;
+  color: #1e3a8a;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.time-adjustment-controls button:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.time-adjustment-controls button:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
 .time-input:disabled {
   background: #f1f5f9;
   color: #64748b;
@@ -802,6 +846,76 @@ hr {
 .time-error {
   color: #b91c1c;
   font-size: 0.75rem;
+}
+
+.submission-summary {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.8rem;
+  background: #f8fbff;
+}
+
+.submission-summary-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.submission-summary-header h4 {
+  margin: 0 0 0.2rem;
+}
+
+.submission-summary-header p {
+  margin: 0;
+  color: #475569;
+}
+
+.submission-summary h5 {
+  margin: 0.8rem 0 0.35rem;
+}
+
+.submission-summary ul {
+  margin-bottom: 0.6rem;
+}
+
+@media print {
+  @page {
+    margin: 15mm;
+  }
+
+  body,
+  body * {
+    visibility: hidden !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .submission-summary,
+  .submission-summary * {
+    visibility: visible !important;
+  }
+
+  .app-shell {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .submission-summary {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: #111827;
+  }
+
+  .submission-summary button {
+    display: none !important;
+  }
 }
 
 @media (max-width: 700px) {

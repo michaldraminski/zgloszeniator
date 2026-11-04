@@ -101,7 +101,7 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 
 ### 3.5 Verified joins and rules (asserted in tests)
 
-- **Athlete identity**: key = (`lastname`, `firstname`, birth year, `gender`) after `NFC` normalization, trim, case-fold. All 35 athletes of the entry file matched in the results. There were 0 duplicate keys and 0 same-name-different-year pairs in the results.
+- **Athlete identity**: key = (`lastname`, `firstname`, birth year, `gender`) after `NFC` normalization, trim, case-fold. All 35 athletes of the entry file matched in the results. Regression coverage also verifies that athletes sharing first and last names but having different birth years remain separate.
 - **Entry time consistency**: of 137 individual entries, 136 were found in the results, all with identical `entrytime`. One had no result record, so code must tolerate missing results.
 - **Age rule**: `age = year(AGEDATE) - birthYear` when `AGEDATE@type == "YEAR"`. All 137 entries are consistent. The alternative `age - 1` fails for 7 of them.
 - **Event resolution**: `resolveEvent(meet, gender, disciplineKey, age)` returns exactly one event for every one of the 137 entries and equals the `eventid` chosen in the golden file.
@@ -116,7 +116,7 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 - If `AGEDATE@type` is not `YEAR`, throw `UnsupportedAgeDateType` (implement per the LENEX spec later).
 - Time is an **integer number of centiseconds** (`number`). "No time" is `null` internally. `00:00:00.00` is the LENEX "NT" convention, so verify it before relying on it.
 - Only `status`-less results become observations. Times from a previous entry file are observations with lower trust (`source.kind = "entry"`).
-- Default time policy: best valid result at the same `course` within the last 12 months. Fallback: the most recent entry time. Policy is a setting and the choice is always editable per cell.
+- Default time policy: best valid result at the same `course` within the last 12 months before the meet date (or today when the invitation has no meet date). Fallback: the most recent entry time. Policy is a setting and the choice is always editable per cell. This is a safe default, not a confirmed rulebook requirement; check each organizer's regulations.
 
 ### Validation (blocking = cannot export, warning = can export)
 
@@ -299,8 +299,9 @@ UX principles: the app provides a sticky four-step navigation for import, roster
    - `hakostra/lenex-tools`: TypeScript, MIT, active. Worth reading for ideas on legacy formats before implementing M2/M4.
    - Our approach (inject `CLUBS` into the invitation, keep unknown attributes, write 2.0 / cp1250 by default, optionally allow 3.0 / UTF-8 when the organizer confirms compatibility) is small enough to keep in-house.
 9. GitHub Pages serves a project site under `/<repo-name>/`. Set Vite `base` from an env variable (`/` for a custom domain). Avoid client-side routes that need server fallback: use hash routing or a single view with state.
-10. Historical time priority: choose a matching result before any previous-entry time; among results, prefer the latest ISO `MEET@date`. If either date is missing or dates are equal, later import order is the tie-breaker. Confirm that organizers consistently provide `MEET@date` before relying on date ordering for all files.
+10. Historical time priority: the app now chooses the best valid result for the same course within the previous 12 months before the meet date (or today if the invitation has no meet date), then falls back to the latest previous-entry time. Confirm that result files consistently provide ISO `MEET@date` before relying on this window.
 11. The Olecko results export omits `SWIMSTYLE@name`. Recover its discipline labels only from a prior entry with the same non-empty city, course, and complete unique `(session, event number, gender, relay count)` schedule. If no unique compatible label inventory exists, keep those results unresolved rather than guessing.
+12. The official PZPn [documents page](https://www.pzp-n.pl/dokumenty/) lists a 2026 KPP regulations PDF, but its text could not be inspected with the available PDF tools. The 12-month historical-time window is therefore a default heuristic, not a confirmed regulation requirement; review the PDF before treating it as authoritative.
 
 ---
 

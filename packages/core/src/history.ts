@@ -17,6 +17,7 @@ export interface ImportedTimeObservation {
 export interface ImportedHistory {
   athletes: IncomingAthlete[];
   observations: ImportedTimeObservation[];
+  clubNamesByAthleteKey: Map<string, string[]>;
   unresolvedResultCount: number;
 }
 
@@ -28,6 +29,31 @@ function meetIdentity(name: string, city?: string): string {
 function normalizedLocation(city: string | undefined): string | undefined {
   const normalized = city?.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
   return normalized || undefined;
+}
+
+function normalizedClubName(value: string): string {
+  return value.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+export function getClubMismatch(
+  knownClubNames: readonly string[],
+  selectedClubName: string,
+): string[] {
+  const selected = normalizedClubName(selectedClubName);
+  const distinctNames: string[] = [];
+  for (const name of knownClubNames) {
+    const trimmed = name.trim();
+    if (trimmed && !distinctNames.some((existing) => normalizedClubName(existing) === normalizedClubName(trimmed))) {
+      distinctNames.push(trimmed);
+    }
+  }
+  if (!selected || distinctNames.length === 0) {
+    return [];
+  }
+  if (distinctNames.some((name) => normalizedClubName(name) === selected)) {
+    return [];
+  }
+  return distinctNames;
 }
 
 function eventSignature(event: {
@@ -133,6 +159,7 @@ export function collectImportedHistory(
 ): ImportedHistory {
   const athletesByKey = new Map<string, IncomingAthlete>();
   const observations: ImportedTimeObservation[] = [];
+  const clubNamesByAthleteKey = new Map<string, string[]>();
   const disciplineByMeetAndEvent = new Map<string, Map<string, string | null>>();
   const disciplineInventories: DisciplineInventory[] = [];
 
@@ -171,6 +198,18 @@ export function collectImportedHistory(
     return key;
   }
 
+  function addAthleteClub(athleteKey: string, clubName: string | undefined): void {
+    const name = clubName?.normalize('NFC').trim().replace(/\s+/g, ' ');
+    if (!name) {
+      return;
+    }
+    const names = clubNamesByAthleteKey.get(athleteKey) ?? [];
+    if (!names.some((existing) => normalizedClubName(existing) === normalizedClubName(name))) {
+      names.push(name);
+      clubNamesByAthleteKey.set(athleteKey, names);
+    }
+  }
+
   let unresolvedResultCount = 0;
   for (const [documentOrder, document] of documents.entries()) {
     if (document.kind === 'entry') {
@@ -183,6 +222,7 @@ export function collectImportedHistory(
             gender: parsedAthlete.gender,
           };
           const athleteKey = addAthlete(athlete);
+          addAthleteClub(athleteKey, club.name);
 
           for (const entry of parsedAthlete.entries) {
             if (entry.timeCs === null) {
@@ -212,6 +252,9 @@ export function collectImportedHistory(
     }
 
     if (document.kind === 'results') {
+      for (const association of document.results.athleteClubs ?? []) {
+        addAthleteClub(identityKey(association.athlete), association.clubName);
+      }
       const resultsInventory = buildDisciplineInventory(document.results.meet);
       const compatibleEventInventory = compatibleInventory(resultsInventory, disciplineInventories);
       const resultEventById = new Map(
@@ -262,11 +305,15 @@ export function collectImportedHistory(
       left.gender.localeCompare(right.gender),
   );
 
-  return { athletes, observations, unresolvedResultCount };
+  return { athletes, observations, clubNamesByAthleteKey, unresolvedResultCount };
 }
 
 function isIsoDate(value: string | undefined): value is string {
-  return value !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 function compareRecency(
@@ -284,11 +331,23 @@ function compareRecency(
   return left.timeCs - right.timeCs;
 }
 
+function isWithinPreviousYear(value: string | undefined, referenceDate: string): boolean {
+  if (!isIsoDate(value) || !isIsoDate(referenceDate)) {
+    return false;
+  }
+  const [year, month, day] = referenceDate.split('-').map(Number);
+  const cutoffYear = year - 1;
+  const cutoffDay = Math.min(day, new Date(Date.UTC(cutoffYear, month, 0)).getUTCDate());
+  const cutoff = `${cutoffYear.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${cutoffDay.toString().padStart(2, '0')}`;
+  return value >= cutoff && value <= referenceDate;
+}
+
 export function suggestImportedTime(
   history: ImportedHistory,
   athleteKey: string,
   disciplineKey: string,
   course: Course,
+  referenceDate?: string,
 ): ImportedTimeObservation | undefined {
   const matching = history.observations.filter(
     (observation) =>
@@ -297,13 +356,18 @@ export function suggestImportedTime(
       observation.course === course,
   );
 
-  for (const kind of ['result', 'entry'] as const) {
-    const preferred = matching
-      .filter((observation) => observation.source.kind === kind)
-      .sort(compareRecency)[0];
-    if (preferred) {
-      return preferred;
-    }
+  const results = matching.filter((observation) => observation.source.kind === 'result');
+  const eligibleResults = referenceDate
+    ? results.filter((observation) => isWithinPreviousYear(observation.source.meetDate, referenceDate))
+    : results;
+  const bestResult = eligibleResults.sort(
+    (left, right) => left.timeCs - right.timeCs || compareRecency(left, right),
+  )[0];
+  if (bestResult) {
+    return bestResult;
   }
-  return undefined;
+
+  return matching
+    .filter((observation) => observation.source.kind === 'entry')
+    .sort(compareRecency)[0];
 }

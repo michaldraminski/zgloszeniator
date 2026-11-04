@@ -87,6 +87,7 @@ export interface ValidResult {
 export interface ParsedResults {
   meet: Meet;
   athletes: IncomingAthlete[];
+  athleteClubs: Array<{ athlete: IncomingAthlete; clubName?: string }>;
   validResults: ValidResult[];
 }
 
@@ -473,6 +474,7 @@ export function parseResults(xml: string): ParsedResults {
   const eventMap = eventDisciplineMap(meet);
   const clubs = findClubs(lenex, meetRecord);
   const athletes: IncomingAthlete[] = [];
+  const athleteClubs: ParsedResults['athleteClubs'] = [];
   const validResults: ValidResult[] = [];
   const seenAthletes = new Set<string>();
 
@@ -485,6 +487,7 @@ export function parseResults(xml: string): ParsedResults {
         birthYear: parseBirthYear(attr(athleteRecord, 'birthdate'), 'ATHLETE'),
         gender: parseAthleteGender(attr(athleteRecord, 'gender')),
       };
+      athleteClubs.push({ athlete, ...(attr(club, 'name') ? { clubName: attr(club, 'name') } : {}) });
       const key = identityKey(athlete);
       if (!seenAthletes.has(key)) {
         athletes.push(athlete);
@@ -519,7 +522,7 @@ export function parseResults(xml: string): ParsedResults {
     throw new LenexParseError('Missing CLUBS/CLUB element');
   }
 
-  return { meet, athletes, validResults };
+  return { meet, athletes, athleteClubs, validResults };
 }
 
 export function parseLenexDocument(xml: string): ParsedLenexDocument {

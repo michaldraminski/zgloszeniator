@@ -47,3 +47,21 @@ export function normalizeTimeInput(value: string): string | null {
 
   return null;
 }
+
+/** Round to a whole second; when already rounded, move by one second. */
+export function adjustTimeToSecond(value: string, direction: 'up' | 'down'): string | null {
+  const normalized = normalizeTimeInput(value);
+  if (!normalized) {
+    return null;
+  }
+  const timeCs = parseTime(normalized);
+  if (timeCs === null) {
+    return null;
+  }
+
+  const wholeSeconds = Math.floor(timeCs / 100);
+  const adjustedSeconds = timeCs % 100 === 0
+    ? Math.max(0, wholeSeconds + (direction === 'up' ? 1 : -1))
+    : direction === 'up' ? wholeSeconds + 1 : wholeSeconds;
+  return formatTime(adjustedSeconds * 100);
+}

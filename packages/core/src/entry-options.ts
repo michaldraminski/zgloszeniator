@@ -102,6 +102,7 @@ export function buildAthleteEventOptions(
   meet: Meet,
   history: ImportedHistory,
   athleteKeys?: ReadonlySet<string>,
+  referenceDate?: string,
 ): AthleteEntryOptions[] {
   return history.athletes
     .filter((athlete) => !athleteKeys || athleteKeys.has(identityKey(athlete)))
@@ -123,7 +124,13 @@ export function buildAthleteEventOptions(
         if (!event) {
           return [];
         }
-        const suggestedTime = suggestImportedTime(history, athleteKey, disciplineKey, meet.course);
+        const suggestedTime = suggestImportedTime(
+          history,
+          athleteKey,
+          disciplineKey,
+          meet.course,
+          referenceDate,
+        );
         return [{ event, ...(suggestedTime ? { suggestedTime } : {}) }];
       })
       .sort((left, right) => left.event.number - right.event.number);
