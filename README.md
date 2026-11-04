@@ -72,3 +72,5 @@ Monorepo zawiera `apps/web` (React + Vite) oraz `packages/core` (parsowanie LENE
 - Tryb offline/PWA i stały, współdzielony katalog zawodników nie są jeszcze dostępne. Autosave zachowuje bieżące zgłoszenie w danej przeglądarce; kopia JSON służy do przenoszenia danych.
 
 Zobacz [HANDOFF.md](HANDOFF.md), aby poznać potwierdzone fakty o LENEX, decyzje projektowe, etapy prac i otwarte kwestie zgodności.
+
+Praktyczny opis obsługi aplikacji znajduje się w [instrukcji dla trenera](INSTRUKCJA-DLA-TRENERA.md).

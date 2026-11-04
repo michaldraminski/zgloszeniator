@@ -271,6 +271,7 @@ UX principles: the app provides a sticky four-step navigation for import, roster
   *AC*: importing entry fixture then results fixture gives 35 athletes, 0 duplicates, observations with `source.kind = 'result'`.
 - **M7 Entry matrix + export + relays**: full flow from invitation to download.
   *AC*: Playwright smoke test builds a submission from fixtures. Blocking errors disable export. Warnings do not.
+  *Progress*: Playwright smoke coverage now exports one synthetic submission, imports it under a second invitation with new event IDs, checks the suggested time, and exports again.
 - **M8 PWA and resilience**: offline, `navigator.storage.persist()`, backup reminder.
   *AC*: app loads offline after the first visit.
 
@@ -293,6 +294,7 @@ UX principles: the app provides a sticky four-step navigation for import, roster
 1. Does the organizer's Splash Meet Manager accept UTF-8 / LENEX 3.0 and `&#N;` references? The vendor sites we checked did not provide a reliable public confirmation; because the organizer is a legacy desktop ecosystem and the sample files clearly use LENEX 2.0 / Windows-1250, we keep the safe default as 2.0 / cp1250 and expose an explicit override in settings for advanced users. This is not a guess: it mirrors the verified fixture format.
 2. Do relay entries count toward `maxentriesathlete`? The golden file never has more than 4 individual entries per athlete.
 3. Are `swimstyleid` values stable across organizers? We key on `name`, but check another organizer's invitation.
+  - Preliminary classic-swimming sample (`zaproszenie.lxf`, Bydgoszcz): six events, all without `SWIMSTYLE@name`, `@code`, or a non-empty `@swimstyleid`; `@stroke` and `@distance` are present. The available results sample is a different meet, so it does not establish a safe discipline join. Do not infer labels from those attributes until an explicit mapping rule is agreed and tested.
 4. Exact NT representation in entries (`00:00:00.00`?). Check the LENEX spec.
 5. The one entry without a result record (see 3.5) suggests a withdrawal or DNS. Confirm how results represent it.
 6. Safari may evict storage of rarely used sites. Backup and `persist()` are mandatory, not optional.

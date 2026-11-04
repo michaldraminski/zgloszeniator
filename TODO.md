@@ -5,7 +5,7 @@
 - [x] Replace the vague message with a concise explanation of missing `SWIMSTYLE@name` labels and keep the unresolved valid-result count.
 - [x] Replace manual event-by-event mapping with a simple path: import the invitation from the same meet as the results. Only exact event IDs within matching meet identity are used; never map IDs across meets.
 - [x] Reproduced the reported Olecko-results + Władysławowo-invitation case with metadata-only checks: all 28 result event styles are unnamed, and only 11 signatures overlap the 40-event Władysławowo invitation. The remaining 17 cannot be safely inferred from this schedule signature; no athlete data was recorded.
-- [x] Test same-meet invitation mapping, cross-meet rejection, partial-match safety, and unresolved count. Further cases for duplicate/ambiguous signatures remain useful follow-up coverage.
+- [x] Test same-meet invitation mapping, cross-meet/course rejection, partial-match safety, duplicate signatures, and unresolved count.
 
 ## High priority: submission-to-next-submission regression flow
 
@@ -15,8 +15,8 @@
 ## Deferred domain checks and documentation
 
 - [ ] Verify the official time-validity rule in the current KPP regulations. The app uses a 12-month default heuristic; it is not confirmed as the organizer's rule.
-- [ ] Review the classic-swimming invitation/results sample from issue #5 as a separate task: check `SWIMSTYLE@swimstyleid`, event identification, age groups, and any LENEX differences, then add synthetic regression fixtures. Finswimming remains the priority.
-- [ ] Write a short Polish coach's guide covering required invitation, optional history/results/reference invitation, athlete and event selection, time editing/reset, warnings, export, and local backups/privacy.
+- [ ] Finish issue #5 for classic swimming: the sample invitation has 6 events, no `SWIMSTYLE@name`, `@code`, or non-empty `@swimstyleid`; it uses `@stroke` and `@distance`. The available results file is a different meet, so it cannot validate an event join. Confirm canonical discipline-label policy before implementation; do not infer labels from `stroke`/`distance` without an explicit decision.
+- [x] Write a short Polish coach's guide covering required invitation, optional history/results/reference invitation, athlete and event selection, time editing/reset, warnings, export, and local backups/privacy.
 
 ## UI: athlete list and club search
 
@@ -36,5 +36,5 @@
 
 ## Backlog order
 
-1. Add browser smoke coverage for the submission-to-next-submission flow.
-2. Expand ambiguous/duplicate event-signature test cases and matching-invitation behavior review.
+1. Confirm the results-time period in the official KPP regulations.
+2. Resolve the classic-swimming discipline-label policy before implementing issue #5.
