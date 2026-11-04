@@ -219,7 +219,7 @@ ul {
 
 .relay-form {
   display: grid;
-  grid-template-columns: minmax(220px, 1.6fr) minmax(160px, 1fr) minmax(150px, 0.8fr) auto;
+  grid-template-columns: minmax(220px, 1.6fr) minmax(160px, 1fr) minmax(230px, 1.1fr) auto;
   gap: 0.7rem;
   align-items: end;
 }
@@ -786,18 +786,21 @@ hr {
 
 .time-segments {
   display: inline-flex;
-  min-height: 3.2rem;
-  align-items: flex-end;
-  gap: 0.1rem;
-  width: fit-content;
-  max-width: 100%;
-  padding: 0.25rem 0.45rem 0.2rem;
-  border: 1px solid #94a3b8;
-  border-radius: 0.55rem;
+  min-height: 3.45rem;
+  width: 9.5rem;
+  min-width: 9.5rem;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.7rem;
   background: #fff;
   color: #0f172a;
   font-variant-numeric: tabular-nums;
-  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.035);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }
 
 .time-segments:focus-within {
@@ -814,16 +817,22 @@ hr {
   box-shadow: 0 0 0 3px #fecaca;
 }
 
+.time-segments .time-segment:focus-within .time-segment-input {
+  border-radius: 0.35rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .time-segments:has(input:disabled) {
   background: #f1f5f9;
   color: #64748b;
 }
 
-.time-segment {
+.time-segments .time-segment {
   display: grid !important;
-  grid-template-rows: 0.75rem 1.65rem;
+  grid-template-rows: 0.85rem 1.75rem;
   justify-items: center;
-  gap: 0.05rem !important;
+  gap: 0.08rem !important;
   min-width: 0;
   margin: 0;
   color: inherit;
@@ -831,43 +840,47 @@ hr {
 }
 
 .time-segment-unit {
-  color: #64748b;
-  font-size: 0.59rem;
-  font-weight: 550;
+  color: #475569;
+  font-size: 0.66rem;
+  font-weight: 650;
+  letter-spacing: 0.025em;
   line-height: 1;
 }
 
-.time-segment-input {
-  width: 3.1ch;
-  min-width: 2.1ch;
-  height: 1.65rem;
-  padding: 0 0.05rem;
+.time-segments .time-segment-input {
+  width: 3ch;
+  min-width: 3ch;
+  min-height: 0;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: 0;
   outline: 0;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 1rem;
+  font-size: 1.15rem;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.03em;
   text-align: center;
 }
 
-.time-segment-minutes {
-  width: 5.2ch;
-  min-width: 2.1ch;
-  max-width: 5.2ch;
+.time-segments .time-segment-input.time-segment-minutes {
+  width: 4.8ch;
+  min-width: 3ch;
+  max-width: 4.8ch;
 }
 
-.time-segment-short {
-  width: 2.5ch;
-  min-width: 2.5ch;
+.time-segments .time-segment-input.time-segment-short {
+  width: 2.4ch;
+  min-width: 2.4ch;
 }
 
 .time-segment-input::placeholder {
-  color: #94a3b8;
-  opacity: 0.75;
+  color: #64748b;
+  opacity: 0.95;
 }
 
 .time-segment-input:focus {
@@ -880,11 +893,11 @@ hr {
 }
 
 .time-segment-separator {
-  align-self: end;
-  padding-bottom: 0.17rem;
+  align-self: center;
+  margin-top: 0.58rem;
   color: #64748b;
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: 0.98rem;
+  font-weight: 750;
 }
 
 .time-adjustment-controls {
