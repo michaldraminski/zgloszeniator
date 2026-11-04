@@ -36,6 +36,7 @@ const meetSchema = z.object({
   rawXml: z.string(),
 }).strict();
 const historicalDocumentSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('invitation'), meet: meetSchema }).strict(),
   z.object({ kind: z.literal('entry'), entryFile: z.object({
     meet: meetSchema,
     clubs: z.array(z.object({
@@ -131,7 +132,7 @@ const appSnapshotSchema = z.object({
   selectedAthleteKeys: z.array(z.string()),
   selectedEventIds: z.record(z.string(), z.array(z.string())),
   editedTimes: z.record(z.string(), z.record(z.string(), z.string())),
-  manualResultMappings: z.record(z.string(), z.string()).default({}),
+  manualResultMappings: z.record(z.string(), z.string()).optional(),
 }).strict();
 
 const backupSchema = z.object({

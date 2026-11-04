@@ -7,7 +7,7 @@ import type {
   ParsedLenexDocument,
 } from '@lenex-entries/core';
 
-export type HistoricalDocument = Exclude<ParsedLenexDocument, { kind: 'invitation' }>;
+export type HistoricalDocument = ParsedLenexDocument;
 
 export interface PersistedRelayDraft {
   key: string;
@@ -30,7 +30,6 @@ export interface AppSnapshot {
   selectedAthleteKeys: string[];
   selectedEventIds: Record<string, string[]>;
   editedTimes: Record<string, Record<string, string>>;
-  manualResultMappings: Record<string, string>;
 }
 
 interface SnapshotRecord {

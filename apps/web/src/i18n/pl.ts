@@ -78,9 +78,9 @@ export const pl = {
     invitationHeading: 'Zaproszenie na bieżące zawody',
     invitationHint: 'Najpierw wczytaj zaproszenie organizatora. To ono określa zawody i dostępne konkurencje.',
     chooseInvitation: 'Wybierz zaproszenie (.lxf lub .lef)',
-    historyHeading: 'Poprzednie zgłoszenia i wyniki (opcjonalnie)',
-    historyHint: 'Dodaj pliki zgłoszeń z poprzednich zawodów lub opublikowane wyniki, aby wczytać zawodników i ich czasy.',
-    chooseHistory: 'Dodaj poprzednie zgłoszenia lub wyniki',
+    historyHeading: 'Pliki z poprzednich zawodów (opcjonalnie)',
+    historyHint: 'Dodaj poprzednie zgłoszenia i wyniki. Jeśli wyniki nie zawierają nazw dyscyplin, dodaj też zaproszenie z tych samych zawodów — aplikacja bezpiecznie połączy eventid z dyscyplinami.',
+    chooseHistory: 'Dodaj zgłoszenie, wyniki lub zaproszenie',
     localOnlyHint: 'Pliki są przetwarzane lokalnie, a bieżące zgłoszenie zapisuje się automatycznie w tej przeglądarce. Dane nie są wysyłane do sieci.',
     persistence: {
       loading: 'Odtwarzanie ostatniego zgłoszenia z pamięci przeglądarki…',
@@ -100,7 +100,7 @@ export const pl = {
     storageProtected: 'Przeglądarka przyznała ochronę lokalnym danym. Nadal pobieraj kopię zapasową.',
     storageProtectionUnavailable: 'Ta przeglądarka nie udostępnia ochrony pamięci lokalnej.',
     storageNotProtected: 'Przeglądarka nie przyznała ochrony. Regularnie pobieraj kopię zapasową.',
-    timePriorityHint: 'Domyślnie podpowiadamy najlepszy ważny wynik z 12 miesięcy przed zawodami dla tego samego basenu; gdy go brak, używamy poprzedniego zgłoszenia. Sprawdź okres wymagany w regulaminie konkretnych zawodów.',
+    timePriorityHint: 'Podpowiadamy najlepszy ważny wynik z ostatnich 12 miesięcy dla tego samego basenu. Jeśli plik wyniku nie ma daty, wynik nadal ma pierwszeństwo przed poprzednim zgłoszeniem. Sprawdź okres wymagany w regulaminie zawodów.',
     clubMismatch: (sourceClubs: string[], selectedClub: string) =>
       `Uwaga: w zaimportowanych plikach zawodnik występuje jako: ${sourceClubs.join(', ')}. Wybrany klub to „${selectedClub}” — sprawdź, czy zgłoszenie jest prawidłowe.`,
     roundTimeDown: 'Zaokrąglij czas w dół / cofnij o sekundę',
@@ -117,17 +117,10 @@ export const pl = {
     historySummary: 'Podsumowanie danych historycznych',
     entryTimes: 'Czasy z poprzednich zgłoszeń',
     resultTimes: 'Ważne czasy z wyników',
-    unresolvedResults: (count: number) => `Brakuje nazwy dyscypliny w ${count} ważnych wynikach. Poniżej możesz przypisać eventy ręcznie. Wcześniejsze zgłoszenie z tych samych zawodów może pomóc, ale nie jest wymagane.`,
-    resultMappingHeading: 'Dopasuj wyniki bez nazwy dyscypliny',
-    resultMappingHelp: (unresolvedCount: number) => unresolvedCount > 0
-      ? 'Plik wyników nie podaje nazw SWIMSTYLE. Numer eventu i sesja są tylko podpowiedzią — eventid jest inny na każdych zawodach, więc niczego nie przypisujemy automatycznie.'
-      : 'Sprawdź ręczne przypisania dyscyplin. Eventid jest lokalny dla zawodów i nie służy do dopasowywania między plikami.',
-    resultMappingResultCount: (count: number) => `Ważne wyniki w tym evencie: ${count}`,
-    resultMappingCandidate: (labels: string) => `Możliwa zgodność po numerze/sesji (niepotwierdzona): ${labels}`,
-    resultMappingSelect: 'Przypisz do dyscypliny',
-    resultMappingUnassigned: 'Nie przypisano — pomiń te czasy',
-    sessionNumber: 'sesja',
-    eventNumber: 'event',
+    unresolvedResults: (count: number) => `Nie udało się rozpoznać dyscypliny dla ${count} ważnych wyników. Dodaj do importu zaproszenie z tych samych zawodów, aby odczytać dyscypliny po eventid. Te czasy nie będą użyte, dopóki dyscypliny nie uda się rozpoznać.`,
+    duplicateHistory: (count: number) => count === 1
+      ? 'Pominięto 1 plik, który był już wczytany.'
+      : `Pominięto ${count} plików, które były już wczytane.`,
     clubUnknown: 'Klub nieznany',
     selectionHeading: 'Wybierz zawodników i zgłoszenia',
     selectAllAthletes: 'Zaznacz wszystkich zawodników',

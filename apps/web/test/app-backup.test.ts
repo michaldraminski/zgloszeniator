@@ -29,7 +29,6 @@ const snapshot: AppSnapshot = {
   selectedAthleteKeys: ['synthetic-athlete'],
   selectedEventIds: { 'synthetic-athlete': ['event-1'] },
   editedTimes: { 'synthetic-athlete': { 'event-1': '00:01:02.34' } },
-  manualResultMappings: {},
 };
 
 describe('app backup validation', () => {
@@ -82,5 +81,18 @@ describe('app backup validation', () => {
       kind: 'results',
       results: { athleteClubs: [] },
     });
+  });
+
+  it('round-trips an imported invitation used to resolve results from the same meet', () => {
+    const snapshotWithReferenceInvitation: AppSnapshot = {
+      ...snapshot,
+      historicalFiles: [{
+        fileName: 'synthetic-source-invitation.lef',
+        document: { kind: 'invitation', meet: snapshot.invitation!.meet },
+      }],
+    };
+
+    expect(parseAppBackup(serializeAppBackup(snapshotWithReferenceInvitation)))
+      .toEqual(snapshotWithReferenceInvitation);
   });
 });

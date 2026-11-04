@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   adjustSwimTimeToSecond,
   adjustTimeToSecond,
+  displaySwimTimeInput,
   formatSwimTime,
   normalizeSwimTimeInput,
   normalizeTimeInput,
@@ -54,6 +55,12 @@ describe('adjustTimeToSecond', () => {
 });
 
 describe('swim time input', () => {
+  it('does not reformat active partial input and converts legacy stored LENEX values', () => {
+    expect(displaySwimTimeInput('01:02.3')).toBe('01:02.3');
+    expect(displaySwimTimeInput('01:02')).toBe('01:02');
+    expect(displaySwimTimeInput('00:01:02.34')).toBe('01:02.34');
+  });
+
   it('uses minutes, seconds, and centiseconds without displaying hours', () => {
     expect(normalizeSwimTimeInput('1:2.3')).toBe('01:02.30');
     expect(normalizeSwimTimeInput('12.3')).toBe('00:12.30');

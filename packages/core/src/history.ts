@@ -18,31 +18,12 @@ export interface ImportedHistory {
   athletes: IncomingAthlete[];
   observations: ImportedTimeObservation[];
   clubNamesByAthleteKey: Map<string, string[]>;
-  resultEventMappings: ImportedResultEventMapping[];
   unresolvedResultCount: number;
 }
 
-export interface ImportedResultEventMapping {
-  key: string;
-  eventId: string;
-  meetName: string;
-  sourceFileName?: string;
-  eventNumber?: number;
-  sessionNumber?: number;
-  gender?: string;
-  relayCount?: number;
-  resultCount: number;
-  disciplineKey?: string;
-  resolution: 'automatic' | 'manual' | 'unresolved';
-}
-
-export function importedResultEventMappingKey(documentOrder: number, eventId: string): string {
-  return `${documentOrder}::${eventId}`;
-}
-
-function meetIdentity(name: string, city?: string): string {
-  const normalize = (value: string) => value.normalize('NFC').trim().toLowerCase();
-  return `${normalize(name)}\u0000${normalize(city ?? '')}`;
+function meetIdentity(name: string, city: string | undefined, course: Course): string {
+  const normalize = (value: string) => value.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+  return `${normalize(name)}\u0000${normalize(city ?? '')}\u0000${course}`;
 }
 
 function normalizedLocation(city: string | undefined): string | undefined {
@@ -175,19 +156,17 @@ function compatibleInventory(
 export function collectImportedHistory(
   documents: readonly ParsedLenexDocument[],
   sourceFileNames: readonly string[] = [],
-  manualResultMappings: Readonly<Record<string, string>> = {},
 ): ImportedHistory {
   const athletesByKey = new Map<string, IncomingAthlete>();
   const observations: ImportedTimeObservation[] = [];
   const clubNamesByAthleteKey = new Map<string, string[]>();
-  const resultEventMappings = new Map<string, ImportedResultEventMapping>();
   const disciplineByMeetAndEvent = new Map<string, Map<string, string | null>>();
   const disciplineInventories: DisciplineInventory[] = [];
 
   for (const document of documents) {
     if (document.kind === 'invitation' || document.kind === 'entry') {
       const meet = document.kind === 'invitation' ? document.meet : document.entryFile.meet;
-      const identity = meetIdentity(meet.name, meet.city);
+      const identity = meetIdentity(meet.name, meet.city, meet.course);
       const inventory = buildDisciplineInventory(meet);
       if (inventory.uniqueSchedule && inventory.allDisciplinesNamed) {
         disciplineInventories.push(inventory);
@@ -286,35 +265,19 @@ export function collectImportedHistory(
       }
       for (const result of document.results.validResults) {
         const event = resultEventById.get(result.eventId);
-        const mappingKey = importedResultEventMappingKey(documentOrder, result.eventId);
-        const manualDisciplineKey = manualResultMappings[mappingKey]?.trim();
-        const existingMapping = resultEventMappings.get(mappingKey);
         const signature = event ? eventSignature(event) : undefined;
         const signatureDiscipline = signature
           ? compatibleEventInventory?.labelsBySignature.get(signature)
           : undefined;
         const eventDiscipline = disciplineByMeetAndEvent
-          .get(meetIdentity(document.results.meet.name, document.results.meet.city))
+          .get(meetIdentity(
+            document.results.meet.name,
+            document.results.meet.city,
+            document.results.meet.course,
+          ))
           ?.get(result.eventId);
-        const disciplineKey = manualDisciplineKey ?? result.disciplineKey ??
+        const disciplineKey = result.disciplineKey ??
           (eventDiscipline === null ? undefined : eventDiscipline ?? signatureDiscipline) ?? undefined;
-        resultEventMappings.set(mappingKey, {
-          key: mappingKey,
-          eventId: result.eventId,
-          meetName: document.results.meet.name,
-          ...(sourceFileNames[documentOrder]
-            ? { sourceFileName: sourceFileNames[documentOrder] }
-            : {}),
-          ...(event ? {
-            eventNumber: event.number,
-            sessionNumber: event.sessionNumber,
-            gender: event.gender,
-            relayCount: event.relayCount,
-          } : {}),
-          resultCount: (existingMapping?.resultCount ?? 0) + 1,
-          ...(disciplineKey ? { disciplineKey } : {}),
-          resolution: manualDisciplineKey ? 'manual' : disciplineKey ? 'automatic' : 'unresolved',
-        });
         if (!disciplineKey) {
           unresolvedResultCount += 1;
           continue;
@@ -350,9 +313,6 @@ export function collectImportedHistory(
     athletes,
     observations,
     clubNamesByAthleteKey,
-    resultEventMappings: [...resultEventMappings.values()].filter(
-      (mapping) => mapping.resolution !== 'automatic',
-    ),
     unresolvedResultCount,
   };
 }
@@ -407,7 +367,10 @@ export function suggestImportedTime(
 
   const results = matching.filter((observation) => observation.source.kind === 'result');
   const eligibleResults = referenceDate
-    ? results.filter((observation) => isWithinPreviousYear(observation.source.meetDate, referenceDate))
+    ? results.filter((observation) =>
+        observation.source.meetDate === undefined ||
+        isWithinPreviousYear(observation.source.meetDate, referenceDate),
+      )
     : results;
   const bestResult = eligibleResults.sort(
     (left, right) => left.timeCs - right.timeCs || compareRecency(left, right),

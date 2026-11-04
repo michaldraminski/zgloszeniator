@@ -59,6 +59,13 @@ export function normalizeSwimTimeInput(value: string): string | null {
   return null;
 }
 
+/** Convert old persisted LENEX values for display without rewriting active partial input. */
+export function displaySwimTimeInput(value: string): string {
+  return /^\d{2}:\d{2}:\d{2}\.\d{2}$/.test(value)
+    ? normalizeSwimTimeInput(value) ?? value
+    : value;
+}
+
 export function parseSwimTimeInput(value: string): number | null {
   const normalized = normalizeSwimTimeInput(value);
   if (!normalized) return null;

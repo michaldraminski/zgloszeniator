@@ -13,7 +13,6 @@ import {
   getRelayMemberOptions,
   getRelayAgeWarnings,
   getClubMismatch,
-  importedResultEventMappingKey,
   resolveEvent,
   UnsupportedAgeDateType,
 } from '../src/index';
@@ -337,48 +336,44 @@ describe('LENEX parsers', () => {
     ).toBe(false);
   });
 
-  it('does not guess disciplines from a partial event-schedule match and supports explicit mappings', () => {
+  it('resolves unnamed result disciplines from the invitation for the same meet', () => {
+    const invitation = parseLenexDocument(invitationXml);
+    const unnamedResultsXml = resultsXml.replace(
+      '<SWIMSTYLE name="50m SF" />',
+      '<SWIMSTYLE distance="50" relaycount="1" />',
+    ).replace('name="Synthetic Meet"', 'name="  synthetic   meet  "');
+    const results = parseLenexDocument(unnamedResultsXml);
+    const history = collectImportedHistory([invitation, results]);
+
+    expect(history.unresolvedResultCount).toBe(0);
+    expect(history.observations.filter((observation) => observation.source.kind === 'result')).toContainEqual(
+      expect.objectContaining({ disciplineKey: '50m SF', timeCs: 3080 }),
+    );
+  });
+
+  it('keeps results unresolved when the invitation belongs to another meet', () => {
     const partialResultsXml = resultsXml
       .replace('name="Synthetic Meet"', 'name="Different Meet"')
       .replaceAll('event-1', 'result-event-9')
       .replace('<SWIMSTYLE name="50m SF" />', '<SWIMSTYLE distance="50" relaycount="0" />');
     const results = parseLenexDocument(partialResultsXml);
-    const entry = parseLenexDocument(entryXml);
-    const mappingKey = importedResultEventMappingKey(1, 'result-event-9');
+    const history = collectImportedHistory([parseLenexDocument(invitationXml), results]);
 
-    const unresolved = collectImportedHistory([entry, results], ['', 'results.lef']);
-    expect(unresolved.unresolvedResultCount).toBe(1);
-    expect(unresolved.resultEventMappings).toEqual([
-      expect.objectContaining({
-        key: mappingKey,
-        eventId: 'result-event-9',
-        eventNumber: 1,
-        sessionNumber: 1,
-        resultCount: 1,
-        resolution: 'unresolved',
-      }),
-    ]);
-    expect(unresolved.observations.filter((observation) => observation.source.kind === 'result')).toEqual([]);
+    expect(history.unresolvedResultCount).toBe(1);
+    expect(history.observations.filter((observation) => observation.source.kind === 'result')).toEqual([]);
 
-    const mapped = collectImportedHistory([entry, results], ['', 'results.lef'], {
-      [mappingKey]: '50m SF',
-    });
-    expect(mapped.unresolvedResultCount).toBe(0);
-    expect(mapped.resultEventMappings).toEqual([
-      expect.objectContaining({
-        key: mappingKey,
-        disciplineKey: '50m SF',
-        resultCount: 1,
-        resolution: 'manual',
-      }),
-    ]);
-    expect(mapped.observations).toContainEqual(
-      expect.objectContaining({
-        disciplineKey: '50m SF',
-        timeCs: 3080,
-        source: expect.objectContaining({ kind: 'result' }),
-      }),
+    const invitationOnDifferentCourse = parseLenexDocument(
+      invitationXml.replace('course="SCM"', 'course="LCM"'),
     );
+    const sameNameResults = parseLenexDocument(
+      resultsXml
+        .replace('<SWIMSTYLE name="50m SF" />', '<SWIMSTYLE distance="50" relaycount="1" />'),
+    );
+    const differentCourseHistory = collectImportedHistory([
+      invitationOnDifferentCourse,
+      sameNameResults,
+    ]);
+    expect(differentCourseHistory.unresolvedResultCount).toBe(1);
   });
 
   it('leaves unnamed results unresolved when the event signature is duplicated', () => {
@@ -395,9 +390,6 @@ describe('LENEX parsers', () => {
     ]);
 
     expect(history.unresolvedResultCount).toBe(1);
-    expect(history.resultEventMappings).toMatchObject([
-      { eventId: 'event-1', resolution: 'unresolved', resultCount: 1 },
-    ]);
     expect(history.observations.filter((observation) => observation.source.kind === 'result')).toEqual([]);
   });
 
@@ -413,13 +405,22 @@ describe('LENEX parsers', () => {
     const outOfWindowResultXml = resultsXml
       .replace('name="Synthetic Meet" course="SCM" status="OFFICIAL"', 'name="Synthetic Meet" course="SCM" date="2025-10-19" status="OFFICIAL"')
       .replace('swimtime="00:00:30.80"', 'swimtime="00:00:10.00"');
+    const key = identityKey({ firstName: 'Swimmer', lastName: 'Example', birthYear: 2012, gender: 'F' });
+    const undatedResultHistory = collectImportedHistory([
+      parseLenexDocument(entryXml),
+      parseLenexDocument(resultsXml),
+    ]);
+    expect(suggestImportedTime(undatedResultHistory, key, '50m SF', 'SCM', '2026-10-25')).toMatchObject({
+      timeCs: 3080,
+      source: { kind: 'result' },
+    });
+
     const history = collectImportedHistory([
       parseLenexDocument(previousEntryXml),
       parseLenexDocument(bestResultXml),
       parseLenexDocument(newestResultXml),
       parseLenexDocument(outOfWindowResultXml),
     ]);
-    const key = identityKey({ firstName: 'Swimmer', lastName: 'Example', birthYear: 2012, gender: 'F' });
 
     expect(suggestImportedTime(history, key, '50m SF', 'SCM', '2026-10-25')).toMatchObject({
       timeCs: 2000,

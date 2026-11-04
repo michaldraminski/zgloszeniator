@@ -116,8 +116,8 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 - If `AGEDATE@type` is not `YEAR`, throw `UnsupportedAgeDateType` (implement per the LENEX spec later).
 - Time is an **integer number of centiseconds** (`number`). "No time" is `null` internally. `00:00:00.00` is the LENEX "NT" convention, so verify it before relying on it.
 - Only `status`-less results become observations. Times from a previous entry file are observations with lower trust (`source.kind = "entry"`).
-- Some results files omit `SWIMSTYLE@name`. A complete, uniquely matching event schedule from the same meet can resolve those labels; `eventid` is never portable across meets. Partial schedule overlaps are not auto-mapped. Unresolved events are shown for explicit user mapping and remain excluded from suggested times until mapped.
-- Default time policy: best valid result at the same `course` within the last 12 months before the meet date (or today when the invitation has no meet date). Fallback: the most recent entry time. Policy is a setting and the choice is always editable per cell. This is a safe default, not a confirmed rulebook requirement; check each organizer's regulations.
+- Some results files omit `SWIMSTYLE@name`. Import the invitation from those same meets to recover labels using event IDs scoped to exact meet identity; never map IDs across different meets or infer mappings from partial event schedules. Unresolved results stay out of time suggestions until a matching invitation is imported.
+- Default time policy: best valid result at the same `course` with a known date within the previous 12 months; results with no meet date remain preferred to previous-entry times because the age of those results cannot be verified. If no eligible result exists, use the most recent entry time. Check the actual period required by each meet's regulations.
 
 Coach-facing time inputs use `minutes:seconds.centiseconds` without an hours field, but preserve durations through 99:59:59.99 and convert to integer centiseconds internally. Export remains LENEX `hh:mm:ss.cc`.
 
@@ -302,9 +302,9 @@ UX principles: the app provides a sticky four-step navigation for import, roster
    - `hakostra/lenex-tools`: TypeScript, MIT, active. Worth reading for ideas on legacy formats before implementing M2/M4.
    - Our approach (inject `CLUBS` into the invitation, keep unknown attributes, write 2.0 / cp1250 by default, optionally allow 3.0 / UTF-8 when the organizer confirms compatibility) is small enough to keep in-house.
 9. GitHub Pages serves a project site under `/<repo-name>/`. Set Vite `base` from an env variable (`/` for a custom domain). Avoid client-side routes that need server fallback: use hash routing or a single view with state.
-10. Historical time priority: the app now chooses the best valid result for the same course within the previous 12 months before the meet date (or today if the invitation has no meet date), then falls back to the latest previous-entry time. Confirm that result files consistently provide ISO `MEET@date` before relying on this window.
-11. The Olecko results export omits `SWIMSTYLE@name`. Recover its discipline labels only from a prior entry with the same non-empty city, course, and complete unique `(session, event number, gender, relay count)` schedule. If no unique compatible label inventory exists, keep those results unresolved rather than guessing.
-12. The official PZPn [documents page](https://www.pzp-n.pl/dokumenty/) lists a 2026 KPP regulations PDF, but its text could not be inspected with the available PDF tools. The 12-month historical-time window is therefore a default heuristic, not a confirmed regulation requirement; review the PDF before treating it as authoritative.
+10. Historical time priority uses the best dated result from the prior 12 months for the same course. If a valid result has no `MEET@date`, it remains preferred to an entry time because its age cannot be determined. Confirm the period against each meet's regulations.
+11. Some results omit `SWIMSTYLE@name`. The reliable recovery path is importing the organizer invitation from the same meet; event IDs are joined only when normalized meet name and city match. Never map event IDs across meets or guess from a partial schedule.
+12. The official PZPn [documents page](https://www.pzp-n.pl/dokumenty/) lists a 2026 KPP regulations PDF, but its text could not be inspected with the available PDF tools. The 12-month window remains a product default, not a confirmed regulation requirement.
 
 ---
 

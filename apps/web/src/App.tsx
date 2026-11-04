@@ -6,7 +6,6 @@ import {
   getRelayMemberOptions,
   getRelayAgeWarnings,
   getClubMismatch,
-  importedResultEventMappingKey,
   ageAt,
   collectImportedHistory,
   formatTime,
@@ -26,9 +25,11 @@ import {
 
 import { pl } from './i18n/pl';
 import { filterAthletes } from './roster';
+import { addUniqueHistoricalFiles, type HistoricalFileInput } from './file-import';
 import { relayMemberKeys, setRelayMemberAtPosition, toggleRelayMemberAssignment } from './relay-draft';
 import {
   adjustSwimTimeToSecond,
+  displaySwimTimeInput,
   formatSwimTime,
   normalizeSwimTimeInput,
   parseSwimTimeInput,
@@ -36,7 +37,6 @@ import {
 import {
   loadAppSnapshot,
   saveAppSnapshot,
-  type HistoricalDocument,
   type PersistedRelayDraft,
 } from './db/app-snapshot';
 import { BackupValidationError, parseAppBackup, serializeAppBackup } from './db/app-backup';
@@ -47,10 +47,7 @@ type InvitationImportState =
   | { kind: 'loaded'; fileName: string; meet: Meet }
   | { kind: 'error'; fileName: string; reason: 'invalid' | 'wrong-type'; diagnostic?: string };
 
-interface HistoricalFile {
-  fileName: string;
-  document: HistoricalDocument;
-}
+type HistoricalFile = HistoricalFileInput;
 
 interface RejectedHistoryFile {
   fileName: string;
@@ -172,7 +169,7 @@ export default function App() {
   const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
   const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
   const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
-  const [manualResultMappings, setManualResultMappings] = useState<Record<string, string>>({});
+  const [duplicateHistoryFiles, setDuplicateHistoryFiles] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,7 +187,6 @@ export default function App() {
           setSelectedAthleteKeys(snapshot.selectedAthleteKeys);
           setSelectedEventIds(snapshot.selectedEventIds);
           setEditedTimes(snapshot.editedTimes);
-          setManualResultMappings(snapshot.manualResultMappings ?? {});
         }
         setPersistenceStatus('saved');
         setPersistenceReady(true);
@@ -228,7 +224,6 @@ export default function App() {
       selectedAthleteKeys,
       selectedEventIds,
       editedTimes,
-      manualResultMappings,
     };
     setPersistenceStatus('saving');
     const timeout = window.setTimeout(() => {
@@ -247,7 +242,6 @@ export default function App() {
     selectedAthleteKeys,
     selectedEventIds,
     editedTimes,
-    manualResultMappings,
   ]);
 
   useEffect(() => {
@@ -261,7 +255,6 @@ export default function App() {
   const importedHistory = collectImportedHistory(
     historicalFiles.map(({ document }) => document),
     historicalFiles.map(({ fileName }) => fileName),
-    manualResultMappings,
   );
   const rosterByKey = new Map<string, IncomingAthlete>();
   for (const athlete of [...importedHistory.athletes, ...localAthletes]) {
@@ -579,7 +572,6 @@ export default function App() {
       selectedAthleteKeys,
       selectedEventIds,
       editedTimes,
-      manualResultMappings,
     };
     const blob = new Blob([serializeAppBackup(snapshot)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -607,7 +599,6 @@ export default function App() {
       setSelectedAthleteKeys(snapshot.selectedAthleteKeys);
       setSelectedEventIds(snapshot.selectedEventIds);
       setEditedTimes(snapshot.editedTimes);
-      setManualResultMappings(snapshot.manualResultMappings ?? {});
       setGeneratedDownload(null);
       setGenerationError('');
       setGenerationDiagnostic('');
@@ -654,7 +645,6 @@ export default function App() {
       setSelectedAthleteKeys(localAthletes.map((athlete) => identityKey(athlete)));
       setSelectedEventIds({});
       setEditedTimes({});
-      setManualResultMappings({});
       setRelayDrafts([]);
       setRelayForm({ choiceKey: '', name: '', time: '' });
       setGeneratedDownload(null);
@@ -672,17 +662,14 @@ export default function App() {
   async function loadHistory(files: File[]): Promise<void> {
     setHistoryLoading(true);
     setRejectedHistoryFiles([]);
+    setDuplicateHistoryFiles([]);
     const accepted: HistoricalFile[] = [];
     const rejected: RejectedHistoryFile[] = [];
 
     for (const file of files) {
       try {
         const document = await parseFile(file);
-        if (document.kind === 'invitation') {
-          rejected.push({ fileName: file.name, reason: 'wrong-type' });
-        } else {
-          accepted.push({ fileName: file.name, document });
-        }
+        accepted.push({ fileName: file.name, document });
       } catch (error) {
         rejected.push({
           fileName: file.name,
@@ -692,7 +679,9 @@ export default function App() {
       }
     }
 
-    setHistoricalFiles((current) => [...current, ...accepted]);
+    const unique = addUniqueHistoricalFiles(historicalFiles, accepted);
+    setHistoricalFiles((current) => addUniqueHistoricalFiles(current, unique.files).files);
+    setDuplicateHistoryFiles(unique.duplicateFileNames);
     setRejectedHistoryFiles(rejected);
     setGeneratedDownload(null);
     setHistoryLoading(false);
@@ -884,6 +873,11 @@ export default function App() {
                 {pl.fileImport.unresolvedResults(importedHistory.unresolvedResultCount)}
               </p>
             )}
+            {duplicateHistoryFiles.length > 0 && (
+              <p className="privacy-note" role="status">
+                {pl.fileImport.duplicateHistory(duplicateHistoryFiles.length)}
+              </p>
+            )}
             <h4>{pl.fileImport.historyImported}</h4>
             <ul>
               {historicalFiles.map(({ fileName, document }, index) => (
@@ -895,60 +889,6 @@ export default function App() {
           </div>
         )}
 
-        {importedHistory.resultEventMappings.length > 0 && invitationState.kind === 'loaded' && (
-          <div className="result-mapping-panel">
-            <h3>{pl.fileImport.resultMappingHeading}</h3>
-            <p>{pl.fileImport.resultMappingHelp(importedHistory.unresolvedResultCount)}</p>
-            <ul className="result-mapping-list">
-              {importedHistory.resultEventMappings.map((mapping) => {
-                const candidateEvents = invitationState.meet.events.filter((event) =>
-                  event.number === mapping.eventNumber &&
-                  event.sessionNumber === mapping.sessionNumber &&
-                  event.gender === mapping.gender &&
-                  event.relayCount === mapping.relayCount,
-                );
-                const candidateLabels = [...new Set(
-                  candidateEvents.flatMap((event) => event.disciplineKey ? [event.disciplineKey] : []),
-                )];
-                const disciplineLabels = [...new Set(
-                  invitationState.meet.events.flatMap((event) => event.disciplineKey ? [event.disciplineKey] : []),
-                )];
-                return (
-                  <li key={mapping.key} className="result-mapping-item">
-                    <div className="result-mapping-description">
-                      <strong>
-                        {mapping.sourceFileName ?? mapping.meetName} · {pl.fileImport.sessionNumber} {mapping.sessionNumber ?? '—'} · {pl.fileImport.eventNumber} {mapping.eventNumber ?? '—'} · {mapping.gender ?? '—'}
-                      </strong>
-                      <small>{pl.fileImport.resultMappingResultCount(mapping.resultCount)}</small>
-                      {candidateLabels.length > 0 && (
-                        <small>{pl.fileImport.resultMappingCandidate(candidateLabels.join(', '))}</small>
-                      )}
-                    </div>
-                    <label>
-                      <span>{pl.fileImport.resultMappingSelect}</span>
-                      <select
-                        value={mapping.disciplineKey ?? ''}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setManualResultMappings((current) => {
-                            const next = { ...current };
-                            if (value) next[mapping.key] = value;
-                            else delete next[mapping.key];
-                            return next;
-                          });
-                          setGeneratedDownload(null);
-                        }}
-                      >
-                        <option value="">{pl.fileImport.resultMappingUnassigned}</option>
-                        {disciplineLabels.map((label) => <option key={label} value={label}>{label}</option>)}
-                      </select>
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
       </section>
 
       {invitationState.kind === 'loaded' && (
@@ -1124,9 +1064,10 @@ export default function App() {
                           {athlete.events.map((option) => {
                             const eventId = option.event.eventId;
                             const checked = isEventSelected(athlete, option);
-                            const storedValue = editedTimes[athlete.athleteKey]?.[eventId] ??
-                              (option.suggestedTime ? formatTime(option.suggestedTime.timeCs) : '');
-                            const value = normalizeSwimTimeInput(storedValue) ?? storedValue;
+                            const editedValue = editedTimes[athlete.athleteKey]?.[eventId];
+                            const value = editedValue === undefined
+                              ? (option.suggestedTime ? formatSwimTime(option.suggestedTime.timeCs) : '')
+                              : displaySwimTimeInput(editedValue);
                             const invalidTime = value.length > 0 && parseSwimTimeInput(value) === null;
 
                             return (
@@ -1425,8 +1366,10 @@ export default function App() {
                 <ul>
                   {submissionSummaryEntries.map(({ athlete, option }) => {
                     const eventId = option.event.eventId;
-                    const time = normalizeSwimTimeInput(editedTimes[athlete.athleteKey]?.[eventId] ?? '') ??
-                      (option.suggestedTime ? formatSwimTime(option.suggestedTime.timeCs) : '');
+                    const editedValue = editedTimes[athlete.athleteKey]?.[eventId];
+                    const time = editedValue !== undefined
+                      ? displaySwimTimeInput(editedValue)
+                      : option.suggestedTime ? formatSwimTime(option.suggestedTime.timeCs) : '';
                     return (
                       <li key={`${athlete.athleteKey}-${eventId}`}>
                         {athlete.athlete.lastName}, {athlete.athlete.firstName} ({athlete.athlete.birthYear}) — {option.event.number}. {option.event.disciplineKey}: {time || pl.export.missingTime}

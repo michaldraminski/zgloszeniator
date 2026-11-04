@@ -3,7 +3,7 @@
 ## High priority: explain and improve unresolved result-discipline mapping
 
 - [x] Replace the vague message with a concise explanation of missing `SWIMSTYLE@name` labels and keep the unresolved valid-result count.
-- [x] Add an event-level diagnostic and explicit manual discipline mapping. Exact schedule matches may be shown as unconfirmed clues; partial overlaps never auto-map. Never map `eventid` values across meets.
+- [x] Replace manual event-by-event mapping with a simple path: import the invitation from the same meet as the results. Only exact event IDs within matching meet identity are used; never map IDs across meets.
 - [x] Reproduced the reported Olecko-results + Władysławowo-invitation case with metadata-only checks: all 28 result event styles are unnamed, and only 11 signatures overlap the 40-event Władysławowo invitation. The remaining 17 cannot be safely inferred from this schedule signature; no athlete data was recorded.
 - [x] Test complete schedule mapping, partial-match safety, explicit mapping, and unresolved count. Further cases for duplicate/ambiguous signatures remain useful follow-up coverage.
 
@@ -31,4 +31,4 @@
 ## Backlog order
 
 1. Add browser smoke coverage for the submission-to-next-submission flow.
-2. Expand ambiguous/duplicate event-signature test cases and manual mapping behavior review.
+2. Expand ambiguous/duplicate event-signature test cases and matching-invitation behavior review.
