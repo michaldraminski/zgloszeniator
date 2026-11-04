@@ -5,12 +5,18 @@
 - [x] Replace the vague message with a concise explanation of missing `SWIMSTYLE@name` labels and keep the unresolved valid-result count.
 - [x] Replace manual event-by-event mapping with a simple path: import the invitation from the same meet as the results. Only exact event IDs within matching meet identity are used; never map IDs across meets.
 - [x] Reproduced the reported Olecko-results + Władysławowo-invitation case with metadata-only checks: all 28 result event styles are unnamed, and only 11 signatures overlap the 40-event Władysławowo invitation. The remaining 17 cannot be safely inferred from this schedule signature; no athlete data was recorded.
-- [x] Test complete schedule mapping, partial-match safety, explicit mapping, and unresolved count. Further cases for duplicate/ambiguous signatures remain useful follow-up coverage.
+- [x] Test same-meet invitation mapping, cross-meet rejection, partial-match safety, and unresolved count. Further cases for duplicate/ambiguous signatures remain useful follow-up coverage.
 
 ## High priority: submission-to-next-submission regression flow
 
 - [x] Add a synthetic core regression test that generates a submission, imports it as history, and builds the next submission with different meet-local event IDs.
-- [ ] Add a browser smoke test for the same two-meet flow so import, draft selection, export, and re-import are exercised together.
+- [x] Add a browser smoke test for the two-meet flow: import, select/edit, export, import the generated entry under a new invitation, and export again. Run with `corepack pnpm --filter @lenex-entries/web run test:e2e` (requires Playwright Chromium).
+
+## Deferred domain checks and documentation
+
+- [ ] Verify the official time-validity rule in the current KPP regulations. The app uses a 12-month default heuristic; it is not confirmed as the organizer's rule.
+- [ ] Review the classic-swimming invitation/results sample from issue #5 as a separate task: check `SWIMSTYLE@swimstyleid`, event identification, age groups, and any LENEX differences, then add synthetic regression fixtures. Finswimming remains the priority.
+- [ ] Write a short Polish coach's guide covering required invitation, optional history/results/reference invitation, athlete and event selection, time editing/reset, warnings, export, and local backups/privacy.
 
 ## UI: athlete list and club search
 

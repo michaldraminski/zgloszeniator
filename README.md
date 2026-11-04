@@ -56,6 +56,12 @@ corepack pnpm -r run test
 corepack pnpm -r run build
 ```
 
+Browser end-to-end smoke test (first install Chromium once with `corepack pnpm --filter @lenex-entries/web exec playwright install chromium`):
+
+```powershell
+corepack pnpm --filter @lenex-entries/web run test:e2e
+```
+
 Monorepo zawiera `apps/web` (React + Vite) oraz `packages/core` (parsowanie LENEX, reguły domenowe i generowanie zgłoszeń w ścisłym TypeScript). Pakiet core nie korzysta z API przeglądarki.
 
 ## Uwagi o zgodności

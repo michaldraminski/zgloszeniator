@@ -11,6 +11,8 @@ node_modules/
 coverage/
 dist/
 .vite/
+test-results/
+playwright-report/
 
 # OS/editor
 desktop.ini
