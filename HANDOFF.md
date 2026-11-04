@@ -116,7 +116,10 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 - If `AGEDATE@type` is not `YEAR`, throw `UnsupportedAgeDateType` (implement per the LENEX spec later).
 - Time is an **integer number of centiseconds** (`number`). "No time" is `null` internally. `00:00:00.00` is the LENEX "NT" convention, so verify it before relying on it.
 - Only `status`-less results become observations. Times from a previous entry file are observations with lower trust (`source.kind = "entry"`).
+- Some results files omit `SWIMSTYLE@name`. A complete, uniquely matching event schedule from the same meet can resolve those labels; `eventid` is never portable across meets. Partial schedule overlaps are not auto-mapped. Unresolved events are shown for explicit user mapping and remain excluded from suggested times until mapped.
 - Default time policy: best valid result at the same `course` within the last 12 months before the meet date (or today when the invitation has no meet date). Fallback: the most recent entry time. Policy is a setting and the choice is always editable per cell. This is a safe default, not a confirmed rulebook requirement; check each organizer's regulations.
+
+Coach-facing time inputs use `minutes:seconds.centiseconds` without an hours field, but preserve durations through 99:59:59.99 and convert to integer centiseconds internally. Export remains LENEX `hh:mm:ss.cc`.
 
 ### Validation (blocking = cannot export, warning = can export)
 

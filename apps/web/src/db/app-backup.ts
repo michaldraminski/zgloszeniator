@@ -77,6 +77,19 @@ const historicalDocumentSchema = z.discriminatedUnion('kind', [
       athlete: incomingAthleteSchema,
       clubName: z.string().optional(),
     }).strict()).default([]),
+    resultEventMappings: z.array(z.object({
+      key: z.string(),
+      eventId: z.string(),
+      meetName: z.string(),
+      sourceFileName: z.string().optional(),
+      eventNumber: z.number().int().safe().optional(),
+      sessionNumber: z.number().int().safe().optional(),
+      gender: z.string().optional(),
+      relayCount: z.number().int().safe().optional(),
+      resultCount: z.number().int().safe(),
+      disciplineKey: z.string().optional(),
+      resolution: z.enum(['automatic', 'manual', 'unresolved']),
+    }).strict()).optional(),
     validResults: z.array(z.object({
       athlete: incomingAthleteSchema,
       eventId: z.string(),
@@ -118,6 +131,7 @@ const appSnapshotSchema = z.object({
   selectedAthleteKeys: z.array(z.string()),
   selectedEventIds: z.record(z.string(), z.array(z.string())),
   editedTimes: z.record(z.string(), z.record(z.string(), z.string())),
+  manualResultMappings: z.record(z.string(), z.string()).default({}),
 }).strict();
 
 const backupSchema = z.object({

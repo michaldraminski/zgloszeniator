@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { adjustTimeToSecond, normalizeTimeInput } from '../src/time-input';
+import {
+  adjustSwimTimeToSecond,
+  adjustTimeToSecond,
+  formatSwimTime,
+  normalizeSwimTimeInput,
+  normalizeTimeInput,
+  parseSwimTimeInput,
+} from '../src/time-input';
 
 describe('normalizeTimeInput', () => {
   it('accepts canonical LENEX times unchanged', () => {
@@ -43,5 +50,34 @@ describe('adjustTimeToSecond', () => {
   it('does not alter empty or invalid input', () => {
     expect(adjustTimeToSecond('', 'up')).toBeNull();
     expect(adjustTimeToSecond('not a time', 'down')).toBeNull();
+  });
+});
+
+describe('swim time input', () => {
+  it('uses minutes, seconds, and centiseconds without displaying hours', () => {
+    expect(normalizeSwimTimeInput('1:2.3')).toBe('01:02.30');
+    expect(normalizeSwimTimeInput('12.3')).toBe('00:12.30');
+    expect(normalizeSwimTimeInput('10234')).toBe('01:02.34');
+    expect(normalizeSwimTimeInput('123456')).toBe('12:34.56');
+    expect(normalizeSwimTimeInput('00:01:02.34')).toBe('01:02.34');
+    expect(parseSwimTimeInput('01:02.34')).toBe(6234);
+    expect(formatSwimTime(6234)).toBe('01:02.34');
+  });
+
+  it('supports long durations without truncating minutes and rejects malformed fields', () => {
+    expect(normalizeSwimTimeInput('754:56.78')).toBe('754:56.78');
+    expect(normalizeSwimTimeInput('99:59:59.99')).toBe('5999:59.99');
+    expect(normalizeSwimTimeInput('6000:00.00')).toBeNull();
+    expect(normalizeSwimTimeInput('12:77.22')).toBeNull();
+    expect(normalizeSwimTimeInput('1:2:3')).toBeNull();
+    expect(normalizeSwimTimeInput('1234567')).toBeNull();
+    expect(parseSwimTimeInput('')).toBeNull();
+  });
+
+  it('rounds swim times to whole seconds and keeps the UI hour-free', () => {
+    expect(adjustSwimTimeToSecond('01:02.34', 'up')).toBe('01:03.00');
+    expect(adjustSwimTimeToSecond('01:02.34', 'down')).toBe('01:02.00');
+    expect(adjustSwimTimeToSecond('01:02.00', 'up')).toBe('01:03.00');
+    expect(adjustSwimTimeToSecond('00:00.00', 'down')).toBe('00:00.00');
   });
 });

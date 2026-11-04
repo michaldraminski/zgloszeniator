@@ -1,5 +1,83 @@
 import { formatTime, parseTime } from '@lenex-entries/core';
 
+/** Format centiseconds as minutes:seconds.centiseconds for the coach-facing UI. */
+export function formatSwimTime(timeCs: number): string {
+  if (!Number.isSafeInteger(timeCs) || timeCs < 0) {
+    return '00:00.00';
+  }
+  const totalSeconds = Math.floor(timeCs / 100);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const centiseconds = timeCs % 100;
+  const part = (value: number) => value.toString().padStart(2, '0');
+  return `${part(minutes)}:${part(seconds)}.${part(centiseconds)}`;
+}
+
+/** Normalize user input to minutes:seconds.centiseconds without losing duration. */
+export function normalizeSwimTimeInput(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const legacyLenexMatch = /^(\d{1,2}):(\d{2}):(\d{2})\.(\d{2})$/.exec(trimmed);
+  if (legacyLenexMatch) {
+    const [, hourPart, minutePart, secondPart, centisecondPart] = legacyLenexMatch;
+    const hours = Number(hourPart);
+    const minutes = Number(minutePart);
+    const seconds = Number(secondPart);
+    if (minutes > 59 || seconds > 59) return null;
+    const totalMinutes = hours * 60 + minutes;
+    if (totalMinutes > 5999) return null;
+    return formatSwimTime((totalMinutes * 60 + seconds) * 100 + Number(centisecondPart));
+  }
+
+  const minuteSecondMatch = /^(\d{1,5}):(\d{1,2})(?:\.(\d{1,2}))?$/.exec(trimmed);
+  if (minuteSecondMatch) {
+    const [, minutePart, secondPart, centisecondPart = '00'] = minuteSecondMatch;
+    const seconds = Number(secondPart);
+    if (seconds > 59 || Number(minutePart) > 5999) return null;
+    return formatSwimTime(
+      (Number(minutePart) * 60 + seconds) * 100 + Number(centisecondPart.padEnd(2, '0')),
+    );
+  }
+
+  const secondsMatch = /^(\d{1,2})(?:\.(\d{1,2}))$/.exec(trimmed);
+  if (secondsMatch) {
+    const [, secondPart, centisecondPart] = secondsMatch;
+    const seconds = Number(secondPart);
+    if (seconds > 59) return null;
+    return formatSwimTime(seconds * 100 + Number(centisecondPart.padEnd(2, '0')));
+  }
+
+  if (/^\d{1,6}$/.test(trimmed)) {
+    const digits = trimmed.padStart(6, '0');
+    const minutes = Number(digits.slice(0, 2));
+    const seconds = Number(digits.slice(2, 4));
+    if (seconds > 59) return null;
+    return formatSwimTime((minutes * 60 + seconds) * 100 + Number(digits.slice(4, 6)));
+  }
+
+  return null;
+}
+
+export function parseSwimTimeInput(value: string): number | null {
+  const normalized = normalizeSwimTimeInput(value);
+  if (!normalized) return null;
+  const [minutePart, secondsAndCentiseconds] = normalized.split(':');
+  const [secondPart, centisecondPart] = secondsAndCentiseconds.split('.');
+  const total = (Number(minutePart) * 60 + Number(secondPart)) * 100 + Number(centisecondPart);
+  return Number.isSafeInteger(total) ? total : null;
+}
+
+export function adjustSwimTimeToSecond(value: string, direction: 'up' | 'down'): string | null {
+  const timeCs = parseSwimTimeInput(value);
+  if (timeCs === null) return null;
+  const wholeSeconds = Math.floor(timeCs / 100);
+  const adjustedSeconds = timeCs % 100 === 0
+    ? Math.max(0, wholeSeconds + (direction === 'up' ? 1 : -1))
+    : direction === 'up' ? wholeSeconds + 1 : wholeSeconds;
+  return formatSwimTime(adjustedSeconds * 100);
+}
+
 /** Normalize common coach-friendly time inputs into canonical LENEX hh:mm:ss.cc form. */
 export function normalizeTimeInput(value: string): string | null {
   const trimmed = value.trim();

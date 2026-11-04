@@ -14,7 +14,10 @@ Projekt jest w trakcie rozwoju. Przed użyciem plików na prawdziwych zawodach z
 
 - Wczytywanie plików `.lef` oraz archiwów `.lxf`.
 - Import wcześniejszych zgłoszeń i ważnych wyników jako historii zawodników i czasów.
+- Ręczne przypisywanie dyscyplin do wyników LENEX, które nie zawierają nazw `SWIMSTYLE`.
 - Podpowiadanie najlepszego ważnego wyniku z ostatnich 12 miesięcy (domyślnie) oraz ręczna edycja czasu.
+- Wyszukiwanie zawodników również po klubie oraz widoczna nazwa klubu w selektorze.
+- Wprowadzanie czasu w czytelnym formacie minuty:sekundy.setne; eksport nadal używa formatu LENEX.
 - Ostrzeżenie, gdy w historii zawodnik figuruje w klubie innym niż wpisany do zgłoszenia.
 - Przyciski zaokrąglania czasu w górę lub w dół do pełnej sekundy.
 - Dodawanie sztafet i opcjonalne przypisywanie zawodników do zmian.

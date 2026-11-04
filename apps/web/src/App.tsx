@@ -6,6 +6,7 @@ import {
   getRelayMemberOptions,
   getRelayAgeWarnings,
   getClubMismatch,
+  importedResultEventMappingKey,
   ageAt,
   collectImportedHistory,
   formatTime,
@@ -26,7 +27,12 @@ import {
 import { pl } from './i18n/pl';
 import { filterAthletes } from './roster';
 import { relayMemberKeys, setRelayMemberAtPosition, toggleRelayMemberAssignment } from './relay-draft';
-import { adjustTimeToSecond, normalizeTimeInput } from './time-input';
+import {
+  adjustSwimTimeToSecond,
+  formatSwimTime,
+  normalizeSwimTimeInput,
+  parseSwimTimeInput,
+} from './time-input';
 import {
   loadAppSnapshot,
   saveAppSnapshot,
@@ -166,6 +172,7 @@ export default function App() {
   const [selectedAthleteKeys, setSelectedAthleteKeys] = useState<string[]>([]);
   const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
   const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
+  const [manualResultMappings, setManualResultMappings] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -183,6 +190,7 @@ export default function App() {
           setSelectedAthleteKeys(snapshot.selectedAthleteKeys);
           setSelectedEventIds(snapshot.selectedEventIds);
           setEditedTimes(snapshot.editedTimes);
+          setManualResultMappings(snapshot.manualResultMappings ?? {});
         }
         setPersistenceStatus('saved');
         setPersistenceReady(true);
@@ -220,6 +228,7 @@ export default function App() {
       selectedAthleteKeys,
       selectedEventIds,
       editedTimes,
+      manualResultMappings,
     };
     setPersistenceStatus('saving');
     const timeout = window.setTimeout(() => {
@@ -238,6 +247,7 @@ export default function App() {
     selectedAthleteKeys,
     selectedEventIds,
     editedTimes,
+    manualResultMappings,
   ]);
 
   useEffect(() => {
@@ -251,6 +261,7 @@ export default function App() {
   const importedHistory = collectImportedHistory(
     historicalFiles.map(({ document }) => document),
     historicalFiles.map(({ fileName }) => fileName),
+    manualResultMappings,
   );
   const rosterByKey = new Map<string, IncomingAthlete>();
   for (const athlete of [...importedHistory.athletes, ...localAthletes]) {
@@ -264,7 +275,11 @@ export default function App() {
       left.birthYear - right.birthYear
     );
   });
-  const visibleAthletes = filterAthletes(rosterAthletes, athleteSearch);
+  const visibleAthletes = filterAthletes(
+    rosterAthletes,
+    athleteSearch,
+    importedHistory.clubNamesByAthleteKey,
+  );
   const historyWithRoster = { ...importedHistory, athletes: rosterAthletes };
   const selectedEntryOptions =
     invitationState.kind === 'loaded'
@@ -355,8 +370,7 @@ export default function App() {
     if (!selectedRelayChoice) {
       return;
     }
-    const normalizedRelayTime = normalizeTimeInput(relayForm.time);
-    const timeCs = normalizedRelayTime ? parseTime(normalizedRelayTime) : null;
+    const timeCs = parseSwimTimeInput(relayForm.time);
     if (timeCs === null) {
       setGenerationError(pl.relay.invalidTime);
       return;
@@ -440,7 +454,7 @@ export default function App() {
         const eventId = option.event.eventId;
         const value = editedTimes[athlete.athleteKey]?.[eventId] ??
           (option.suggestedTime ? formatTime(option.suggestedTime.timeCs) : '');
-        const timeCs = parseTime(value);
+        const timeCs = parseSwimTimeInput(value);
         if (timeCs === null) {
           setGenerationError(pl.export.invalidOrMissingTime);
           return;
@@ -565,6 +579,7 @@ export default function App() {
       selectedAthleteKeys,
       selectedEventIds,
       editedTimes,
+      manualResultMappings,
     };
     const blob = new Blob([serializeAppBackup(snapshot)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -592,6 +607,7 @@ export default function App() {
       setSelectedAthleteKeys(snapshot.selectedAthleteKeys);
       setSelectedEventIds(snapshot.selectedEventIds);
       setEditedTimes(snapshot.editedTimes);
+      setManualResultMappings(snapshot.manualResultMappings ?? {});
       setGeneratedDownload(null);
       setGenerationError('');
       setGenerationDiagnostic('');
@@ -641,6 +657,7 @@ export default function App() {
       setSelectedAthleteKeys(localAthletes.map((athlete) => identityKey(athlete)));
       setSelectedEventIds({});
       setEditedTimes({});
+      setManualResultMappings({});
       setRelayDrafts([]);
       setRelayForm({ choiceKey: '', name: '', time: '' });
       setGeneratedDownload(null);
@@ -880,7 +897,7 @@ export default function App() {
             </p>
             {importedHistory.unresolvedResultCount > 0 && (
               <p className="unresolved-results" role="status">
-                {pl.fileImport.unresolvedResults} ({importedHistory.unresolvedResultCount})
+                {pl.fileImport.unresolvedResults(importedHistory.unresolvedResultCount)}
               </p>
             )}
             <h4>{pl.fileImport.historyImported}</h4>
@@ -890,6 +907,61 @@ export default function App() {
                   {getDocumentLabel(document)} — {fileName}: {getDocumentSummary(document)}
                 </li>
               ))}
+            </ul>
+          </div>
+        )}
+
+        {importedHistory.resultEventMappings.length > 0 && invitationState.kind === 'loaded' && (
+          <div className="result-mapping-panel">
+            <h3>{pl.fileImport.resultMappingHeading}</h3>
+            <p>{pl.fileImport.resultMappingHelp(importedHistory.unresolvedResultCount)}</p>
+            <ul className="result-mapping-list">
+              {importedHistory.resultEventMappings.map((mapping) => {
+                const candidateEvents = invitationState.meet.events.filter((event) =>
+                  event.number === mapping.eventNumber &&
+                  event.sessionNumber === mapping.sessionNumber &&
+                  event.gender === mapping.gender &&
+                  event.relayCount === mapping.relayCount,
+                );
+                const candidateLabels = [...new Set(
+                  candidateEvents.flatMap((event) => event.disciplineKey ? [event.disciplineKey] : []),
+                )];
+                const disciplineLabels = [...new Set(
+                  invitationState.meet.events.flatMap((event) => event.disciplineKey ? [event.disciplineKey] : []),
+                )];
+                return (
+                  <li key={mapping.key} className="result-mapping-item">
+                    <div className="result-mapping-description">
+                      <strong>
+                        {mapping.sourceFileName ?? mapping.meetName} · {pl.fileImport.sessionNumber} {mapping.sessionNumber ?? '—'} · {pl.fileImport.eventNumber} {mapping.eventNumber ?? '—'} · {mapping.gender ?? '—'}
+                      </strong>
+                      <small>{pl.fileImport.resultMappingResultCount(mapping.resultCount)}</small>
+                      {candidateLabels.length > 0 && (
+                        <small>{pl.fileImport.resultMappingCandidate(candidateLabels.join(', '))}</small>
+                      )}
+                    </div>
+                    <label>
+                      <span>{pl.fileImport.resultMappingSelect}</span>
+                      <select
+                        value={mapping.disciplineKey ?? ''}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setManualResultMappings((current) => {
+                            const next = { ...current };
+                            if (value) next[mapping.key] = value;
+                            else delete next[mapping.key];
+                            return next;
+                          });
+                          setGeneratedDownload(null);
+                        }}
+                      >
+                        <option value="">{pl.fileImport.resultMappingUnassigned}</option>
+                        {disciplineLabels.map((label) => <option key={label} value={label}>{label}</option>)}
+                      </select>
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -967,6 +1039,7 @@ export default function App() {
             <>
               <div className="selection-actions">
                 <button
+                  className="secondary-action-button"
                   type="button"
                   onClick={() => {
                     setGeneratedDownload(null);
@@ -1028,13 +1101,12 @@ export default function App() {
                         }}
                       />
                       <span>
-                        {athlete.lastName}, {athlete.firstName}
-                        {invitationState.kind === 'loaded' && (
-                          <small>
-                            {pl.roster.birthYear} {athlete.birthYear} · {ageAt(invitationState.meet, athlete.birthYear)}{' '}
-                            {pl.fileImport.ageSuffix}
-                          </small>
-                        )}
+                        {athlete.lastName}, {athlete.firstName} ({athlete.birthYear})
+                        <small className="athlete-club-label" title={
+                          (importedHistory.clubNamesByAthleteKey.get(athleteKey) ?? []).join(' / ') || pl.fileImport.clubUnknown
+                        }>
+                          {(importedHistory.clubNamesByAthleteKey.get(athleteKey) ?? []).join(' / ') || pl.fileImport.clubUnknown}
+                        </small>
                       </span>
                     </label>
                     );
@@ -1068,11 +1140,10 @@ export default function App() {
                           {athlete.events.map((option) => {
                             const eventId = option.event.eventId;
                             const checked = isEventSelected(athlete, option);
-                            const value = editedTimes[athlete.athleteKey]?.[eventId] ??
-                              (option.suggestedTime
-                                ? formatTime(option.suggestedTime.timeCs)
-                                : '');
-                            const invalidTime = value.length > 0 && normalizeTimeInput(value) === null;
+                            const storedValue = editedTimes[athlete.athleteKey]?.[eventId] ??
+                              (option.suggestedTime ? formatTime(option.suggestedTime.timeCs) : '');
+                            const value = normalizeSwimTimeInput(storedValue) ?? storedValue;
+                            const invalidTime = value.length > 0 && parseSwimTimeInput(value) === null;
 
                             return (
                               <div className="discipline-option" key={eventId}>
@@ -1088,34 +1159,37 @@ export default function App() {
                                     {option.event.number}. {option.event.disciplineKey}
                                   </span>
                                 </label>
-                                <div className="time-field">
-                                  <input
-                                    className={invalidTime ? 'time-input time-input-invalid' : 'time-input'}
-                                    type="text"
-                                    inputMode="decimal"
-                                    aria-invalid={invalidTime}
-                                    aria-label={`${pl.fileImport.timeFor} ${option.event.disciplineKey} — ${athlete.athlete.lastName}`}
-                                    placeholder="00:00:00.00"
-                                    value={value}
-                                    disabled={!checked}
-                                    onChange={(event) =>
-                                      updateTime(athlete.athleteKey, eventId, event.target.value)
-                                    }
-                                    onBlur={() => {
-                                      const normalized = normalizeTimeInput(value);
-                                      if (normalized && normalized !== value) {
-                                        updateTime(athlete.athleteKey, eventId, normalized);
+                                <div className="time-control">
+                                  <div className="time-field">
+                                    <input
+                                      className={invalidTime ? 'time-input time-input-invalid' : 'time-input'}
+                                      type="text"
+                                      inputMode="decimal"
+                                      aria-invalid={invalidTime}
+                                      aria-label={`${pl.fileImport.timeFor} ${option.event.disciplineKey} — ${athlete.athlete.lastName}`}
+                                      placeholder="00:00.00"
+                                      value={value}
+                                      disabled={!checked}
+                                      onChange={(event) =>
+                                        updateTime(athlete.athleteKey, eventId, event.target.value)
                                       }
-                                    }}
-                                  />
+                                      onBlur={() => {
+                                        const normalized = normalizeSwimTimeInput(value);
+                                        if (normalized && normalized !== value) {
+                                          updateTime(athlete.athleteKey, eventId, normalized);
+                                        }
+                                      }}
+                                    />
+                                    <small className="time-unit-hint">{pl.fileImport.timeUnitHint}</small>
+                                  </div>
                                   <div className="time-adjustment-controls">
                                     <button
                                       type="button"
                                       aria-label={`${pl.fileImport.roundTimeDown} — ${athlete.athlete.lastName}, ${option.event.disciplineKey}`}
                                       title={pl.fileImport.roundTimeDown}
-                                      disabled={!checked || normalizeTimeInput(value) === null}
+                                      disabled={!checked || parseSwimTimeInput(value) === null}
                                       onClick={() => {
-                                        const adjusted = adjustTimeToSecond(value, 'down');
+                                        const adjusted = adjustSwimTimeToSecond(value, 'down');
                                         if (adjusted !== null) updateTime(athlete.athleteKey, eventId, adjusted);
                                       }}
                                     >−</button>
@@ -1123,9 +1197,9 @@ export default function App() {
                                       type="button"
                                       aria-label={`${pl.fileImport.roundTimeUp} — ${athlete.athlete.lastName}, ${option.event.disciplineKey}`}
                                       title={pl.fileImport.roundTimeUp}
-                                      disabled={!checked || normalizeTimeInput(value) === null}
+                                      disabled={!checked || parseSwimTimeInput(value) === null}
                                       onClick={() => {
-                                        const adjusted = adjustTimeToSecond(value, 'up');
+                                        const adjusted = adjustSwimTimeToSecond(value, 'up');
                                         if (adjusted !== null) updateTime(athlete.athleteKey, eventId, adjusted);
                                       }}
                                     >+</button>
@@ -1187,29 +1261,33 @@ export default function App() {
                   </label>
                   <label>
                     <span>{pl.relay.time}</span>
-                    <div className="time-field">
-                      <input
-                        className="time-input"
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="00:00:00.00"
-                        value={relayForm.time}
-                        onChange={(event) => setRelayForm((current) => ({ ...current, time: event.target.value }))}
-                        onBlur={() => {
-                          const normalized = normalizeTimeInput(relayForm.time);
-                          if (normalized && normalized !== relayForm.time) {
-                            setRelayForm((current) => ({ ...current, time: normalized }));
-                          }
-                        }}
-                      />
+                    <div className="time-control">
+                      <div className="time-field">
+                        <input
+                          className="time-input"
+                          type="text"
+                          inputMode="decimal"
+                          aria-label={pl.relay.time}
+                          placeholder="00:00.00"
+                          value={relayForm.time}
+                          onChange={(event) => setRelayForm((current) => ({ ...current, time: event.target.value }))}
+                          onBlur={() => {
+                            const normalized = normalizeSwimTimeInput(relayForm.time);
+                            if (normalized && normalized !== relayForm.time) {
+                              setRelayForm((current) => ({ ...current, time: normalized }));
+                            }
+                          }}
+                        />
+                        <small className="time-unit-hint">{pl.fileImport.timeUnitHint}</small>
+                      </div>
                       <div className="time-adjustment-controls">
                         <button
                           type="button"
                           aria-label={pl.fileImport.roundTimeDown}
                           title={pl.fileImport.roundTimeDown}
-                          disabled={normalizeTimeInput(relayForm.time) === null}
+                          disabled={parseSwimTimeInput(relayForm.time) === null}
                           onClick={() => {
-                            const adjusted = adjustTimeToSecond(relayForm.time, 'down');
+                            const adjusted = adjustSwimTimeToSecond(relayForm.time, 'down');
                             if (adjusted !== null) setRelayForm((current) => ({ ...current, time: adjusted }));
                           }}
                         >−</button>
@@ -1217,9 +1295,9 @@ export default function App() {
                           type="button"
                           aria-label={pl.fileImport.roundTimeUp}
                           title={pl.fileImport.roundTimeUp}
-                          disabled={normalizeTimeInput(relayForm.time) === null}
+                          disabled={parseSwimTimeInput(relayForm.time) === null}
                           onClick={() => {
-                            const adjusted = adjustTimeToSecond(relayForm.time, 'up');
+                            const adjusted = adjustSwimTimeToSecond(relayForm.time, 'up');
                             if (adjusted !== null) setRelayForm((current) => ({ ...current, time: adjusted }));
                           }}
                         >+</button>
@@ -1252,7 +1330,7 @@ export default function App() {
                         <li key={key}>
                           <div className="relay-row-content">
                             <strong>
-                              {choice?.eventNumber}. {choice?.disciplineKey} · {relay.name} · {formatTime(relay.timeCs)}
+                              {choice?.eventNumber}. {choice?.disciplineKey} · {relay.name} · {formatSwimTime(relay.timeCs)}
                             </strong>
                             <label className="relay-members-toggle">
                               <input
@@ -1349,8 +1427,8 @@ export default function App() {
                 <ul>
                   {submissionSummaryEntries.map(({ athlete, option }) => {
                     const eventId = option.event.eventId;
-                    const time = editedTimes[athlete.athleteKey]?.[eventId] ??
-                      (option.suggestedTime ? formatTime(option.suggestedTime.timeCs) : '');
+                    const time = normalizeSwimTimeInput(editedTimes[athlete.athleteKey]?.[eventId] ?? '') ??
+                      (option.suggestedTime ? formatSwimTime(option.suggestedTime.timeCs) : '');
                     return (
                       <li key={`${athlete.athleteKey}-${eventId}`}>
                         {athlete.athlete.lastName}, {athlete.athlete.firstName} ({athlete.athlete.birthYear}) — {option.event.number}. {option.event.disciplineKey}: {time || pl.export.missingTime}
@@ -1372,7 +1450,7 @@ export default function App() {
                       .filter((athlete): athlete is IncomingAthlete => athlete !== undefined);
                     return (
                       <li key={row.key}>
-                        {choice?.eventNumber}. {choice?.disciplineKey} · {row.relay.name}: {formatTime(row.relay.timeCs)}
+                        {choice?.eventNumber}. {choice?.disciplineKey} · {row.relay.name}: {formatSwimTime(row.relay.timeCs)}
                         {members.length > 0 && ` · ${members.map((member) => `${member.lastName}, ${member.firstName} (${member.birthYear})`).join('; ')}`}
                       </li>
                     );

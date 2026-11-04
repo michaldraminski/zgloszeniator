@@ -30,6 +30,7 @@ export interface AppSnapshot {
   selectedAthleteKeys: string[];
   selectedEventIds: Record<string, string[]>;
   editedTimes: Record<string, Record<string, string>>;
+  manualResultMappings: Record<string, string>;
 }
 
 interface SnapshotRecord {

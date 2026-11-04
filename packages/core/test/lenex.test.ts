@@ -13,6 +13,7 @@ import {
   getRelayMemberOptions,
   getRelayAgeWarnings,
   getClubMismatch,
+  importedResultEventMappingKey,
   resolveEvent,
   UnsupportedAgeDateType,
 } from '../src/index';
@@ -334,6 +335,70 @@ describe('LENEX parsers', () => {
     expect(
       ambiguousHistory.observations.some((observation) => observation.source.kind === 'result'),
     ).toBe(false);
+  });
+
+  it('does not guess disciplines from a partial event-schedule match and supports explicit mappings', () => {
+    const partialResultsXml = resultsXml
+      .replace('name="Synthetic Meet"', 'name="Different Meet"')
+      .replaceAll('event-1', 'result-event-9')
+      .replace('<SWIMSTYLE name="50m SF" />', '<SWIMSTYLE distance="50" relaycount="0" />');
+    const results = parseLenexDocument(partialResultsXml);
+    const entry = parseLenexDocument(entryXml);
+    const mappingKey = importedResultEventMappingKey(1, 'result-event-9');
+
+    const unresolved = collectImportedHistory([entry, results], ['', 'results.lef']);
+    expect(unresolved.unresolvedResultCount).toBe(1);
+    expect(unresolved.resultEventMappings).toEqual([
+      expect.objectContaining({
+        key: mappingKey,
+        eventId: 'result-event-9',
+        eventNumber: 1,
+        sessionNumber: 1,
+        resultCount: 1,
+        resolution: 'unresolved',
+      }),
+    ]);
+    expect(unresolved.observations.filter((observation) => observation.source.kind === 'result')).toEqual([]);
+
+    const mapped = collectImportedHistory([entry, results], ['', 'results.lef'], {
+      [mappingKey]: '50m SF',
+    });
+    expect(mapped.unresolvedResultCount).toBe(0);
+    expect(mapped.resultEventMappings).toEqual([
+      expect.objectContaining({
+        key: mappingKey,
+        disciplineKey: '50m SF',
+        resultCount: 1,
+        resolution: 'manual',
+      }),
+    ]);
+    expect(mapped.observations).toContainEqual(
+      expect.objectContaining({
+        disciplineKey: '50m SF',
+        timeCs: 3080,
+        source: expect.objectContaining({ kind: 'result' }),
+      }),
+    );
+  });
+
+  it('leaves unnamed results unresolved when the event signature is duplicated', () => {
+    const duplicatedScheduleXml = resultsXml
+      .replace('name="Synthetic Meet"', 'name="Different Meet"')
+      .replace('<SWIMSTYLE name="50m SF" />', '<SWIMSTYLE distance="50" relaycount="0" />')
+      .replace(
+        '</EVENTS></SESSION>',
+        '<EVENT eventid="duplicate-event" number="1" gender="F"><SWIMSTYLE distance="50" relaycount="0" /></EVENT></EVENTS></SESSION>',
+      );
+    const history = collectImportedHistory([
+      parseLenexDocument(entryXml),
+      parseLenexDocument(duplicatedScheduleXml),
+    ]);
+
+    expect(history.unresolvedResultCount).toBe(1);
+    expect(history.resultEventMappings).toMatchObject([
+      { eventId: 'event-1', resolution: 'unresolved', resultCount: 1 },
+    ]);
+    expect(history.observations.filter((observation) => observation.source.kind === 'result')).toEqual([]);
   });
 
   it('prefers the best result from the previous 12 months, then falls back to the latest entry', () => {

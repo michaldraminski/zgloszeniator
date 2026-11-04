@@ -29,6 +29,7 @@ const snapshot: AppSnapshot = {
   selectedAthleteKeys: ['synthetic-athlete'],
   selectedEventIds: { 'synthetic-athlete': ['event-1'] },
   editedTimes: { 'synthetic-athlete': { 'event-1': '00:01:02.34' } },
+  manualResultMappings: {},
 };
 
 describe('app backup validation', () => {

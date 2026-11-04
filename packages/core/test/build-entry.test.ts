@@ -5,9 +5,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildEntryFile,
+  buildAthleteEventOptions,
+  collectImportedHistory,
   identityKey,
   parseEntryFile,
   parseInvitation,
+  parseLenexDocument,
   readLxf,
 } from '../src/index';
 
@@ -56,6 +59,44 @@ describe('buildEntryFile', () => {
         entries: [{ eventId: 'synthetic-event-1', timeCs: 3125 }],
       }],
     });
+  });
+
+  it('uses a generated submission as history for the next meet with different event IDs', () => {
+    const firstMeet = parseInvitation(invitationXml);
+    const firstSubmission = buildEntryFile(firstMeet, sampleDraft);
+    const firstEntryDocument = parseLenexDocument(readLxf(firstSubmission).xml);
+    const nextInvitationXml = invitationXml
+      .replace('Synthetic Meet', 'Synthetic Next Meet')
+      .replace('eventid="synthetic-event-1"', 'eventid="next-event-1"')
+      .replace('eventid="synthetic-relay-event"', 'eventid="next-relay-event"');
+    const nextMeet = parseInvitation(nextInvitationXml);
+
+    expect(firstEntryDocument.kind).toBe('entry');
+    if (firstEntryDocument.kind !== 'entry') {
+      return;
+    }
+
+    const history = collectImportedHistory([firstEntryDocument]);
+    const [athleteOptions] = buildAthleteEventOptions(nextMeet, history);
+    expect(athleteOptions.events[0]).toMatchObject({
+      event: { eventId: 'next-event-1', disciplineKey: '50m SF' },
+      suggestedTime: { timeCs: 3125, source: { kind: 'entry' } },
+    });
+
+    const nextSubmission = buildEntryFile(nextMeet, {
+      ...sampleDraft,
+      athletes: [{
+        ...sampleDraft.athletes[0],
+        entries: [{
+          eventId: athleteOptions.events[0].event.eventId,
+          timeCs: athleteOptions.events[0].suggestedTime!.timeCs,
+        }],
+      }],
+    });
+    const parsedNextSubmission = parseEntryFile(readLxf(nextSubmission).xml);
+    expect(parsedNextSubmission.clubs[0].athletes[0].entries).toEqual([
+      { eventId: 'next-event-1', disciplineKey: '50m SF', timeCs: 3125 },
+    ]);
   });
 
   it('escapes XML values and replaces unrepresentable characters with numeric references', () => {
