@@ -46,6 +46,8 @@ export const pl = {
     diagnosticLabel: 'Szczegóły diagnostyczne',
     summaryHeading: 'Podsumowanie zgłoszenia',
     summaryAction: 'Podsumowanie',
+    pdfFooter: 'Wygenerowano lokalnie w aplikacji Zgłoszeniator.',
+    pdfFailed: 'Nie udało się otworzyć podsumowania PDF.',
     summaryCount: (entries: number, relays: number) => `Konkurencje indywidualne: ${entries} · Sztafety: ${relays}`,
     individualEntries: 'Zgłoszenia indywidualne',
     noIndividualEntries: 'Nie wybrano konkurencji indywidualnych.',

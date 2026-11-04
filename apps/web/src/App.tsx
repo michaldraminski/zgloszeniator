@@ -362,6 +362,63 @@ export default function App() {
     }));
   }
 
+  function openSummaryPdf(): void {
+    const popup = window.open('', '_blank');
+    if (!popup) {
+      setGenerationError(pl.export.pdfFailed);
+      setGenerationDiagnostic('The browser blocked opening the PDF tab');
+      return;
+    }
+
+    const entries = submissionSummaryEntries.map(({ athlete, option }) => {
+      const eventId = option.event.eventId;
+      const editedValue = editedTimes[athlete.athleteKey]?.[eventId];
+      return {
+        athleteName: `${athlete.athlete.lastName}, ${athlete.athlete.firstName}`,
+        birthYear: athlete.athlete.birthYear,
+        eventLabel: `${option.event.number}. ${option.event.disciplineKey ?? ''}`,
+        time: editedValue !== undefined
+          ? displaySwimTimeInput(editedValue)
+          : option.suggestedTime ? formatSwimTime(option.suggestedTime.timeCs) : '',
+      };
+    });
+    const relays = relayDrafts.map((row) => {
+      const choice = relayChoices.find((item) => item.eventId === row.relay.eventId);
+      const members = row.memberAthleteKeys
+        .filter((athleteKey): athleteKey is string => athleteKey !== null)
+        .map((athleteKey) => rosterByKey.get(athleteKey))
+        .filter((athlete): athlete is IncomingAthlete => athlete !== undefined)
+        .map((athlete) => `${athlete.lastName}, ${athlete.firstName} (${athlete.birthYear})`);
+      return {
+        eventLabel: `${choice?.eventNumber ?? ''}. ${choice?.disciplineKey ?? ''}`.trim(),
+        relayName: row.relay.name,
+        time: formatSwimTime(row.relay.timeCs),
+        members,
+      };
+    });
+
+    const pdfContent = {
+      heading: pl.export.summaryHeading,
+      meetName: invitationState.kind === 'loaded' ? invitationState.meet.name : '',
+      clubName: clubDetails.name || pl.export.clubName,
+      individualHeading: pl.export.individualEntries,
+      relayHeading: pl.relay.heading,
+      missingTimeLabel: pl.export.missingTime,
+      noEntriesLabel: pl.export.noIndividualEntries,
+      noRelaysLabel: pl.export.noRelays,
+      footer: pl.export.pdfFooter,
+      entries,
+      relays,
+    };
+    void import('./submission-pdf')
+      .then(({ openSubmissionPdf }) => openSubmissionPdf(pdfContent, popup))
+      .catch((error: unknown) => {
+        popup.close();
+        setGenerationError(pl.export.pdfFailed);
+        setGenerationDiagnostic(error instanceof Error ? error.message : 'PDF generation failed');
+      });
+  }
+
   function addRelay(): void {
     if (!selectedRelayChoice) {
       return;
@@ -1399,12 +1456,13 @@ export default function App() {
                   <h4 id="submission-summary-heading">{pl.export.summaryHeading}</h4>
                   <p>{invitationState.meet.name} · {clubDetails.name || pl.export.clubName}</p>
                 </div>
-                <a
+                <button
                   className="secondary-action-button"
-                  href="#submission-summary"
+                  type="button"
+                  onClick={openSummaryPdf}
                 >
                   {pl.export.summaryAction}
-                </a>
+                </button>
               </div>
               <p className="privacy-note">
                 {pl.export.summaryCount(submissionSummaryEntries.length, relayDrafts.length)}

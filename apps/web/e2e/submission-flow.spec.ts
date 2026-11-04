@@ -67,8 +67,13 @@ test('creates a submission and reuses it as history for the next meet', async ({
   await expect(page.locator('.time-field').getByText('Uzupełnij poprawnie minuty, sekundy i setne sekundy.')).toHaveCount(0);
 
   await page.getByLabel('Nazwa klubu').fill('Synthetic Club');
-  await page.getByRole('link', { name: 'Podsumowanie' }).click();
-  await expect(page).toHaveURL(/#submission-summary$/);
+  const pdfPopupPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'Podsumowanie' }).click();
+  const pdfPage = await pdfPopupPromise;
+  const pdfFrame = pdfPage.getByTitle('Podsumowanie PDF');
+  await expect(pdfFrame).toBeVisible();
+  await expect.poll(() => pdfFrame.getAttribute('src')).toMatch(/^blob:/);
+  expect(page.url()).not.toContain('#submission-summary');
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByRole('region', { name: 'Podsumowanie zgłoszenia' })).toBeVisible();
   await expect(page.locator('.app-header')).not.toBeVisible();
