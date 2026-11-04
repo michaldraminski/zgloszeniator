@@ -170,6 +170,20 @@ describe('LENEX parsers', () => {
     ]);
   });
 
+  it('skips result athletes with incomplete identity and reports how many were ignored', () => {
+    const xmlWithAnonymousAthlete = resultsXml.replace(
+      '</ATHLETES>',
+      '<ATHLETE lastname="Unidentified" birthdate="2012-01-01" gender="F"><RESULTS>' +
+        '<RESULT eventid="event-1" swimtime="00:00:28.00" /></RESULTS></ATHLETE></ATHLETES>',
+    );
+    const parsed = parseResults(xmlWithAnonymousAthlete);
+
+    expect(parsed.athletes).toHaveLength(1);
+    expect(parsed.ignoredAthleteCount).toBe(1);
+    expect(parsed.validResults).toHaveLength(1);
+    expect(parsed.validResults[0].timeCs).toBe(3080);
+  });
+
   it('keeps same-name athletes distinct when their birth years differ across clubs', () => {
     const sameNameResultsXml = `<?xml version="1.0"?>
 <LENEX version="3.0"><MEETS><MEET name="Synthetic Meet" course="SCM">
@@ -542,6 +556,9 @@ describe('LENEX parsers', () => {
 
     const ageCapWarning = getRelayAgeWarnings(meet, 'KAT. Open', 17, [adult]);
     expect(ageCapWarning).toMatchObject([{ age: 18, reason: 'over-category-limit' }]);
+    expect(getRelayAgeWarnings(meet, 'KAT. Junior', 17, [adult])).toMatchObject([
+      { age: 18, reason: 'adult-in-junior-and-over-category-limit' },
+    ]);
     expect(getRelayAgeWarnings(meet, 'KAT. Junior', undefined, [
       { ...adult, birthYear: 2010 },
     ])).toEqual([]);

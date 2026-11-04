@@ -25,7 +25,7 @@ const results = {
 };
 
 describe('addUniqueHistoricalFiles', () => {
-  it('does not add the same parsed document more than once, even with a different filename', () => {
+  it('merges successive imports and does not add the same parsed document twice', () => {
     const result = addUniqueHistoricalFiles(
       [{ fileName: 'results.lef', document: results }],
       [
@@ -34,7 +34,10 @@ describe('addUniqueHistoricalFiles', () => {
       ],
     );
 
-    expect(result.files.map(({ fileName }) => fileName)).toEqual(['same file renamed.lxf']);
+    expect(result.files.map(({ fileName }) => fileName).sort()).toEqual([
+      'results.lef',
+      'same file renamed.lxf',
+    ]);
     expect(result.duplicateFileNames).toEqual(['results (copy).lxf']);
   });
 

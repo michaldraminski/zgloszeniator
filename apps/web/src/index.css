@@ -478,6 +478,31 @@ ul {
   cursor: pointer;
 }
 
+.history-file-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.remove-history-file-button {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: #64748b;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.remove-history-file-button:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .advanced-storage-tools[open] summary {
   margin-bottom: 0.7rem;
 }
@@ -894,37 +919,99 @@ hr {
     margin: 15mm;
   }
 
+  html,
   body,
-  body * {
-    visibility: hidden !important;
+  #root {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
     background: #fff !important;
+  }
+
+  body * {
+    display: none !important;
+  }
+
+  .app-shell,
+  .entry-planner,
+  #export-section {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
     box-shadow: none !important;
+    background: #fff !important;
   }
 
   .submission-summary,
   .submission-summary * {
+    display: revert !important;
     visibility: visible !important;
-  }
-
-  .app-shell {
-    max-width: none;
-    margin: 0;
-    padding: 0;
   }
 
   .submission-summary {
     position: absolute;
     inset: 0 auto auto 0;
-    width: 100%;
+    width: 100% !important;
     margin: 0;
     padding: 0;
     border: 0;
     color: #111827;
+    background: #fff !important;
   }
 
   .submission-summary button {
     display: none !important;
   }
+}
+
+.new-submission-button {
+  margin-top: 0.75rem;
+}
+
+.new-submission-confirmation {
+  max-width: 42rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.65rem;
+  background: #eff6ff;
+}
+
+.new-submission-confirmation p {
+  margin-bottom: 0.6rem;
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.new-submission-confirmation > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.text-action-button {
+  min-height: 2.4rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #475569;
+  font: inherit;
+  cursor: pointer;
+}
+
+.text-action-button:hover {
+  background: #e2e8f0;
 }
 
 @media (max-width: 700px) {

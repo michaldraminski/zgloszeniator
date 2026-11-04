@@ -6,6 +6,11 @@
 2. Opcjonalnie wczytaj poprzednie zgłoszenia i pliki wyników, aby uzyskać listę zawodników i podpowiedzi czasów.
 3. Jeśli w pliku wyników brakuje nazw konkurencji, dołącz także zaproszenie z **tych samych zawodów** do plików historycznych. Aplikacja połączy eventy tylko dla zgodnego spotkania i basenu; nie zgaduje między różnymi zawodami. Wyniki bez rozpoznanej konkurencji nie będą podpowiadane.
 4. Gdy ponownie wybierzesz ten sam plik, aplikacja pominie duplikat.
+5. Jeśli omyłkowo dodasz plik historyczny, kliknij **Usuń** przy tym pliku. Importowane pliki są dodawane do historii — nowe nie zastępują poprzednich.
+
+## Kolejne zawody
+
+Po zakończeniu bieżącego zgłoszenia użyj **Nowe zgłoszenie** w sekcji zaproszenia. Bieżące wybory i zaproszenie zostaną wyczyszczone, a roster, dane klubu i historia pozostaną. Dotychczasowe zaproszenie zostanie przeniesione do historii jako referencja do wyników; możesz usunąć je osobno, jeśli nie jest już potrzebne.
 
 ## Zawodnicy i starty
 

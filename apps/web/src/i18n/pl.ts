@@ -70,6 +70,8 @@ export const pl = {
     unknownMember: 'Nie udało się odnaleźć zawodnika przypisanego do sztafety. Wybierz go ponownie z listy.',
     adultInJuniorWarning: (firstName: string, lastName: string, age: number) =>
       `Ostrzeżenie: ${firstName} ${lastName} ma ${age} lat — osoba 18+ w sztafecie juniorskiej.`,
+    adultInJuniorAndOverAgeWarning: (firstName: string, lastName: string, age: number) =>
+      `Ostrzeżenie: ${firstName} ${lastName} ma ${age} lat — osoba 18+ w sztafecie juniorskiej i powyżej limitu kategorii.`,
     overAgeWarning: (firstName: string, lastName: string, age: number) =>
       `Ostrzeżenie: ${firstName} ${lastName} ma ${age} lat, powyżej limitu kategorii.`,
     listHeading: 'Dodane sztafety',
@@ -121,6 +123,12 @@ export const pl = {
     duplicateHistory: (count: number) => count === 1
       ? 'Pominięto 1 plik, który był już wczytany.'
       : `Pominięto ${count} plików, które były już wczytane.`,
+    newSubmission: 'Nowe zgłoszenie',
+    newSubmissionConfirm: 'Bieżące zaproszenie i wybory zostaną wyczyszczone. Zaproszenie zachowamy w historii jako referencję; historia zawodników i dane klubu pozostaną.',
+    confirmNewSubmission: 'Rozpocznij nowe zgłoszenie',
+    cancelNewSubmission: 'Anuluj',
+    removeHistoryFile: (fileName: string) => `Usuń z historii: ${fileName}`,
+    removeHistoryFileAction: 'Usuń',
     clubUnknown: 'Klub nieznany',
     selectionHeading: 'Wybierz zawodników i zgłoszenia',
     selectAllAthletes: 'Zaznacz wszystkich zawodników',
@@ -150,6 +158,7 @@ export const pl = {
     entries: 'Liczba zgłoszeń indywidualnych',
     relays: 'Liczba zgłoszeń sztafetowych',
     validResults: 'Liczba ważnych wyników',
+    ignoredResultAthletes: (count: number) => `Pominięte rekordy bez pełnych danych zawodnika: ${count}`,
   },
   outputFormat: {
     label: 'Format eksportu LENEX',

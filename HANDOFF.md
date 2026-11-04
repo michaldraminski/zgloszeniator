@@ -271,7 +271,7 @@ UX principles: the app provides a sticky four-step navigation for import, roster
   *AC*: importing entry fixture then results fixture gives 35 athletes, 0 duplicates, observations with `source.kind = 'result'`.
 - **M7 Entry matrix + export + relays**: full flow from invitation to download.
   *AC*: Playwright smoke test builds a submission from fixtures. Blocking errors disable export. Warnings do not.
-  *Progress*: Playwright smoke coverage now exports one synthetic submission, imports it under a second invitation with new event IDs, checks the suggested time, and exports again.
+  *Progress*: Playwright smoke coverage imports files in separate actions, removes one history item, edits/validates a time, verifies single-page PDF print output, exports one synthetic submission, imports it under a second invitation with new event IDs, checks the suggested time, and exports again. Starting a new submission preserves history/roster/contact while archiving the prior invitation as a removable reference.
 - **M8 PWA and resilience**: offline, `navigator.storage.persist()`, backup reminder.
   *AC*: app loads offline after the first visit.
 

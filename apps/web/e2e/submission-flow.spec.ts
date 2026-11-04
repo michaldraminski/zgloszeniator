@@ -26,19 +26,41 @@ test('creates a submission and reuses it as history for the next meet', async ({
   await selectFiles(page, 'Wybierz zaproszenie (.lxf lub .lef)', [invitationPath]);
   await expect(page.getByRole('heading', { name: 'Synthetic Meet' })).toBeVisible();
 
-  await selectFiles(page, 'Dodaj zgłoszenie, wyniki lub zaproszenie', [previousEntryPath, resultsPath]);
+  await selectFiles(page, 'Dodaj zgłoszenie, wyniki lub zaproszenie', [previousEntryPath]);
   await expect(page.getByText('Wczytane pliki historyczne')).toBeVisible();
-
+  await expect(page.getByText(/Poprzednie zgłoszenie — previous-entry\.lef/)).toBeVisible();
+  await selectFiles(page, 'Dodaj zgłoszenie, wyniki lub zaproszenie', [resultsPath]);
+  await expect(page.getByText(/Poprzednie zgłoszenie — previous-entry\.lef/)).toBeVisible();
+  await expect(page.getByText(/Wyniki — results\.lef/)).toBeVisible();
+  await expect(page.getByText(/Czasy z poprzednich zgłoszeń: 1 · Ważne czasy z wyników: 1/)).toBeVisible();
   const athleteCheckbox = page.getByRole('checkbox', { name: /Swimmer, Example \(2012\)/ });
   await expect(athleteCheckbox).toBeVisible();
   await athleteCheckbox.check();
 
+  await page.getByRole('button', { name: 'Usuń z historii: results.lef' }).click();
+  await expect(page.getByText(/Wyniki — results\.lef/)).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Czas dla 50m SF — Swimmer' })).toHaveValue('00:31.25');
+
+  await selectFiles(page, 'Dodaj zgłoszenie, wyniki lub zaproszenie', [resultsPath]);
+  await expect(page.getByText(/Wyniki — results\.lef/)).toBeVisible();
+
   const timeInput = page.getByRole('textbox', { name: 'Czas dla 50m SF — Swimmer' });
   await expect(timeInput).toHaveValue('00:29.90');
   await expect(page.getByText(/Wynik · results\.lef/)).toBeVisible();
+  await timeInput.fill('1:');
+  await expect(page.locator('.time-field').getByText(/Nieprawidłowy czas/)).toBeVisible();
   await timeInput.fill('1:02.34');
+  await expect(page.locator('.time-field').getByText(/Nieprawidłowy czas/)).toHaveCount(0);
 
   await page.getByLabel('Nazwa klubu').fill('Synthetic Club');
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByRole('region', { name: 'Podsumowanie zgłoszenia' })).toBeVisible();
+  await expect(page.locator('.app-header')).not.toBeVisible();
+  const pdf = await page.pdf({ printBackground: true });
+  const pdfText = new TextDecoder('latin1').decode(pdf);
+  const pdfPages = [...pdfText.matchAll(/\/Type\s*\/Page\b/g)].length;
+  expect(pdfPages).toBe(1);
+  await page.emulateMedia({ media: 'screen' });
   const firstDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Pobierz plik .lxf' }).click();
   const download = await firstDownloadPromise;
@@ -77,5 +99,38 @@ test('creates a submission and reuses it as history for the next meet', async ({
     expect(nextDownload.suggestedFilename()).toContain('Synthetic Club');
   } finally {
     await nextContext.close();
+  }
+});
+
+test('starts a new meet while preserving imported history', async ({ browser }, testInfo) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    await page.goto('/');
+    await expect(page.getByRole('status').filter({ hasText: 'Zmiany zapisane lokalnie' })).toBeVisible();
+    await selectFiles(page, 'Wybierz zaproszenie (.lxf lub .lef)', [invitationPath]);
+    await expect(page.getByRole('heading', { name: 'Synthetic Meet' })).toBeVisible();
+    await selectFiles(page, 'Dodaj zgłoszenie, wyniki lub zaproszenie', [previousEntryPath]);
+
+    await page.getByRole('button', { name: 'Nowe zgłoszenie' }).click();
+    await expect(page.getByText(/Bieżące zaproszenie i wybory zostaną wyczyszczone/)).toBeVisible();
+    await page.getByRole('button', { name: 'Rozpocznij nowe zgłoszenie' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Synthetic Meet' })).toHaveCount(0);
+    await expect(page.getByText(/Zaproszenie — invitation\.lef/)).toBeVisible();
+    await expect(page.getByText(/Poprzednie zgłoszenie — previous-entry\.lef/)).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Zawodnicy i zgłoszenie' })).toHaveCount(0);
+
+    const newInvitationXml = (await readFile(invitationPath, 'utf8'))
+      .replaceAll('Synthetic Meet', 'Synthetic Next Meet')
+      .replaceAll('synthetic-event-1', 'next-event-1')
+      .replaceAll('synthetic-relay-event', 'next-relay-event');
+    const newInvitationPath = testInfo.outputPath('next-invitation-new-flow.lef');
+    await import('node:fs/promises').then(({ writeFile }) => writeFile(newInvitationPath, newInvitationXml));
+    await selectFiles(page, 'Wybierz zaproszenie (.lxf lub .lef)', [newInvitationPath]);
+    await expect(page.getByRole('heading', { name: 'Synthetic Next Meet' })).toBeVisible();
+    await expect(page.getByText(/Poprzednie zgłoszenie — previous-entry\.lef/)).toBeVisible();
+  } finally {
+    await context.close();
   }
 });

@@ -80,6 +80,29 @@ describe('real LENEX sample fixtures', () => {
     expect(history.unresolvedResultCount).toBe(0);
   });
 
+  it('resolves unnamed real result styles through the invitation from the same meet', () => {
+    const workspaceRoot = path.resolve(__dirname, '../../..');
+    const invitationPath = path.join(workspaceRoot, 'zaproszenia', 'zaproszenie (1).lxf');
+    const resultsPath = path.join(workspaceRoot, 'wyniki', 'results (1).lxf');
+    if (!existsSync(invitationPath) || !existsSync(resultsPath)) {
+      return;
+    }
+
+    const invitation = parseLenexDocument(readLxf(new Uint8Array(readFileSync(invitationPath))).xml);
+    const results = parseLenexDocument(readLxf(new Uint8Array(readFileSync(resultsPath))).xml);
+    expect(invitation.kind).toBe('invitation');
+    expect(results.kind).toBe('results');
+    if (invitation.kind !== 'invitation' || results.kind !== 'results') {
+      return;
+    }
+
+    const history = collectImportedHistory([invitation, results]);
+    expect(history.unresolvedResultCount).toBe(0);
+    expect(history.observations.filter((observation) => observation.source.kind === 'result'))
+      .toHaveLength(results.results.validResults.length);
+    expect(results.results.ignoredAthleteCount).toBe(1);
+  });
+
   it('compares an Olecko-generated entry with the ready file without persisting personal data', () => {
     const workspaceRoot = path.resolve(__dirname, '../../..');
     const invitationPath = path.join(workspaceRoot, 'zaproszenie-Olecko.lxf');

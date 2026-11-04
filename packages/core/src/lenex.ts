@@ -88,6 +88,7 @@ export interface ParsedResults {
   meet: Meet;
   athletes: IncomingAthlete[];
   athleteClubs: Array<{ athlete: IncomingAthlete; clubName?: string }>;
+  ignoredAthleteCount: number;
   validResults: ValidResult[];
 }
 
@@ -477,16 +478,26 @@ export function parseResults(xml: string): ParsedResults {
   const athleteClubs: ParsedResults['athleteClubs'] = [];
   const validResults: ValidResult[] = [];
   const seenAthletes = new Set<string>();
+  let ignoredAthleteCount = 0;
 
   for (const club of clubs) {
     const athletesNode = child(club, 'ATHLETES');
     for (const athleteRecord of athletesNode ? children(athletesNode.ATHLETE) : []) {
-      const athlete: IncomingAthlete = {
-        firstName: requiredAttr(athleteRecord, 'firstname', 'ATHLETE'),
-        lastName: requiredAttr(athleteRecord, 'lastname', 'ATHLETE'),
-        birthYear: parseBirthYear(attr(athleteRecord, 'birthdate'), 'ATHLETE'),
-        gender: parseAthleteGender(attr(athleteRecord, 'gender')),
-      };
+      let athlete: IncomingAthlete;
+      try {
+        athlete = {
+          firstName: requiredAttr(athleteRecord, 'firstname', 'ATHLETE'),
+          lastName: requiredAttr(athleteRecord, 'lastname', 'ATHLETE'),
+          birthYear: parseBirthYear(attr(athleteRecord, 'birthdate'), 'ATHLETE'),
+          gender: parseAthleteGender(attr(athleteRecord, 'gender')),
+        };
+      } catch (error) {
+        if (!(error instanceof LenexParseError)) {
+          throw error;
+        }
+        ignoredAthleteCount += 1;
+        continue;
+      }
       athleteClubs.push({ athlete, ...(attr(club, 'name') ? { clubName: attr(club, 'name') } : {}) });
       const key = identityKey(athlete);
       if (!seenAthletes.has(key)) {
@@ -522,7 +533,7 @@ export function parseResults(xml: string): ParsedResults {
     throw new LenexParseError('Missing CLUBS/CLUB element');
   }
 
-  return { meet, athletes, athleteClubs, validResults };
+  return { meet, athletes, athleteClubs, ignoredAthleteCount, validResults };
 }
 
 export function parseLenexDocument(xml: string): ParsedLenexDocument {

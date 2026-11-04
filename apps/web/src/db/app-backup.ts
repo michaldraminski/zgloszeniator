@@ -78,6 +78,7 @@ const historicalDocumentSchema = z.discriminatedUnion('kind', [
       athlete: incomingAthleteSchema,
       clubName: z.string().optional(),
     }).strict()).default([]),
+    ignoredAthleteCount: z.number().int().safe().default(0),
     resultEventMappings: z.array(z.object({
       key: z.string(),
       eventId: z.string(),

@@ -114,6 +114,9 @@ function getDocumentSummary(document: ParsedLenexDocument): string {
       return [
         `${pl.fileImport.athletes}: ${document.results.athletes.length}`,
         `${pl.fileImport.validResults}: ${document.results.validResults.length}`,
+        ...(document.results.ignoredAthleteCount > 0
+          ? [pl.fileImport.ignoredResultAthletes(document.results.ignoredAthleteCount)]
+          : []),
       ].join(' · ');
   }
 }
@@ -170,6 +173,7 @@ export default function App() {
   const [selectedEventIds, setSelectedEventIds] = useState<Record<string, string[]>>({});
   const [editedTimes, setEditedTimes] = useState<Record<string, Record<string, string>>>({});
   const [duplicateHistoryFiles, setDuplicateHistoryFiles] = useState<string[]>([]);
+  const [confirmNewSubmission, setConfirmNewSubmission] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -680,11 +684,37 @@ export default function App() {
     }
 
     const unique = addUniqueHistoricalFiles(historicalFiles, accepted);
-    setHistoricalFiles((current) => addUniqueHistoricalFiles(current, unique.files).files);
+    setHistoricalFiles((current) => addUniqueHistoricalFiles(current, accepted).files);
     setDuplicateHistoryFiles(unique.duplicateFileNames);
     setRejectedHistoryFiles(rejected);
     setGeneratedDownload(null);
     setHistoryLoading(false);
+  }
+
+  function removeHistoricalFile(document: HistoricalFile['document']): void {
+    const fingerprint = JSON.stringify(document);
+    setHistoricalFiles((current) => current.filter((file) => JSON.stringify(file.document) !== fingerprint));
+    setDuplicateHistoryFiles([]);
+    setGeneratedDownload(null);
+  }
+
+  function startNewSubmission(): void {
+    if (invitationState.kind !== 'loaded') return;
+    const referenceInvitation: HistoricalFile = {
+      fileName: invitationState.fileName,
+      document: { kind: 'invitation', meet: invitationState.meet },
+    };
+    setHistoricalFiles((current) => addUniqueHistoricalFiles(current, [referenceInvitation]).files);
+    setInvitationState({ kind: 'idle' });
+    setSelectedAthleteKeys(localAthletes.map(identityKey));
+    setSelectedEventIds({});
+    setEditedTimes({});
+    setRelayDrafts([]);
+    setRelayForm({ choiceKey: '', name: '', time: '' });
+    setGeneratedDownload(null);
+    setGenerationError('');
+    setGenerationDiagnostic('');
+    setConfirmNewSubmission(false);
   }
 
   return (
@@ -760,6 +790,27 @@ export default function App() {
             <p>{invitationState.fileName}</p>
             <p>{getDocumentSummary({ kind: 'invitation', meet: invitationState.meet })}</p>
             <p className="privacy-note">{pl.fileImport.ageRule}</p>
+            {!confirmNewSubmission ? (
+              <button
+                className="secondary-action-button new-submission-button"
+                type="button"
+                onClick={() => setConfirmNewSubmission(true)}
+              >
+                {pl.fileImport.newSubmission}
+              </button>
+            ) : (
+              <div className="new-submission-confirmation" role="alert">
+                <p>{pl.fileImport.newSubmissionConfirm}</p>
+                <div>
+                  <button className="secondary-action-button" type="button" onClick={startNewSubmission}>
+                    {pl.fileImport.confirmNewSubmission}
+                  </button>
+                  <button className="text-action-button" type="button" onClick={() => setConfirmNewSubmission(false)}>
+                    {pl.fileImport.cancelNewSubmission}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -881,8 +932,18 @@ export default function App() {
             <h4>{pl.fileImport.historyImported}</h4>
             <ul>
               {historicalFiles.map(({ fileName, document }, index) => (
-                <li key={`${fileName}-${index}`}>
-                  {getDocumentLabel(document)} — {fileName}: {getDocumentSummary(document)}
+                <li className="history-file-item" key={`${fileName}-${index}`}>
+                  <span>
+                    {getDocumentLabel(document)} — {fileName}: {getDocumentSummary(document)}
+                  </span>
+                  <button
+                    className="remove-history-file-button"
+                    type="button"
+                    aria-label={pl.fileImport.removeHistoryFile(fileName)}
+                    onClick={() => removeHistoricalFile(document)}
+                  >
+                    {pl.fileImport.removeHistoryFileAction}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -1091,6 +1152,7 @@ export default function App() {
                                       type="text"
                                       inputMode="decimal"
                                       aria-invalid={invalidTime}
+                                      aria-describedby={invalidTime ? `time-error-${athlete.athleteKey}-${eventId}` : undefined}
                                       aria-label={`${pl.fileImport.timeFor} ${option.event.disciplineKey} — ${athlete.athlete.lastName}`}
                                       placeholder="00:00.00"
                                       value={value}
@@ -1106,6 +1168,11 @@ export default function App() {
                                       }}
                                     />
                                     <small className="time-unit-hint">{pl.fileImport.timeUnitHint}</small>
+                                    {invalidTime && (
+                                      <small className="time-error" id={`time-error-${athlete.athleteKey}-${eventId}`}>
+                                        {pl.fileImport.invalidTime}
+                                      </small>
+                                    )}
                                   </div>
                                   <div className="time-adjustment-controls">
                                     <button
@@ -1147,9 +1214,6 @@ export default function App() {
                                 <small className="time-source">
                                   {getSuggestedTimeLabel(option)}
                                 </small>
-                                {invalidTime && (
-                                  <small className="time-error">{pl.fileImport.invalidTime}</small>
-                                )}
                               </div>
                             );
                           })}
@@ -1324,9 +1388,11 @@ export default function App() {
                             {ageWarnings.length > 0 && (
                               <p className="relay-age-warning" role="status">
                                 {ageWarnings.map((warning) =>
-                                  warning.reason === 'adult-in-junior'
-                                    ? pl.relay.adultInJuniorWarning(warning.athlete.firstName, warning.athlete.lastName, warning.age)
-                                    : pl.relay.overAgeWarning(warning.athlete.firstName, warning.athlete.lastName, warning.age),
+                                  warning.reason === 'adult-in-junior-and-over-category-limit'
+                                    ? pl.relay.adultInJuniorAndOverAgeWarning(warning.athlete.firstName, warning.athlete.lastName, warning.age)
+                                    : warning.reason === 'adult-in-junior'
+                                      ? pl.relay.adultInJuniorWarning(warning.athlete.firstName, warning.athlete.lastName, warning.age)
+                                      : pl.relay.overAgeWarning(warning.athlete.firstName, warning.athlete.lastName, warning.age),
                                 ).join(' ')}
                               </p>
                             )}

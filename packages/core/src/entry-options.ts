@@ -25,7 +25,10 @@ export interface AthleteEntryOptions {
 export interface RelayAgeWarning {
   athlete: IncomingAthlete;
   age: number;
-  reason: 'adult-in-junior' | 'over-category-limit';
+  reason:
+    | 'adult-in-junior'
+    | 'over-category-limit'
+    | 'adult-in-junior-and-over-category-limit';
 }
 
 export function getRelayAgeWarnings(
@@ -35,16 +38,20 @@ export function getRelayAgeWarnings(
   members: readonly IncomingAthlete[],
 ): RelayAgeWarning[] {
   const isJuniorCategory = /junior|młod/i.test(categoryName.normalize('NFC'));
-  return members.flatMap((athlete) => {
+  return members.flatMap<RelayAgeWarning>((athlete) => {
     const age = ageAt(meet, athlete.birthYear);
-    const warnings: RelayAgeWarning[] = [];
-    if (isJuniorCategory && age >= 18) {
-      warnings.push({ athlete, age, reason: 'adult-in-junior' });
+    const adultInJunior = isJuniorCategory && age >= 18;
+    const overCategoryLimit = ageMax !== undefined && ageMax >= 0 && age > ageMax;
+    if (adultInJunior && overCategoryLimit) {
+      return [{ athlete, age, reason: 'adult-in-junior-and-over-category-limit' }];
     }
-    if (ageMax !== undefined && ageMax >= 0 && age > ageMax) {
-      warnings.push({ athlete, age, reason: 'over-category-limit' });
+    if (adultInJunior) {
+      return [{ athlete, age, reason: 'adult-in-junior' }];
     }
-    return warnings;
+    if (overCategoryLimit) {
+      return [{ athlete, age, reason: 'over-category-limit' }];
+    }
+    return [];
   });
 }
 

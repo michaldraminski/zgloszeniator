@@ -14,9 +14,18 @@
 
 ## Deferred domain checks and documentation
 
-- [ ] Verify the official time-validity rule in the current KPP regulations. The app uses a 12-month default heuristic; it is not confirmed as the organizer's rule.
-- [ ] Finish issue #5 for classic swimming: the sample invitation has 6 events, no `SWIMSTYLE@name`, `@code`, or non-empty `@swimstyleid`; it uses `@stroke` and `@distance`. The available results file is a different meet, so it cannot validate an event join. Confirm canonical discipline-label policy before implementation; do not infer labels from `stroke`/`distance` without an explicit decision.
+- [x] Use the best result from the prior 12 months per owner decision; defer classic swimming in this repository and consider a separate fork only if demanded.
 - [x] Write a short Polish coach's guide covering required invitation, optional history/results/reference invitation, athlete and event selection, time editing/reset, warnings, export, and local backups/privacy.
+
+## Final stability pass
+
+- [x] Keep successive history imports additive; permit deleting an individual mistakenly imported history file.
+- [x] Add an explicit “Nowe zgłoszenie” action. It resets the active invitation and draft, keeps roster/club/history, and archives the former invitation as a history reference. History files can be removed individually.
+- [x] Avoid duplicate relay-age warnings when one condition implies the other.
+- [x] Fix print CSS so hidden app sections do not create trailing blank PDF pages; verify the output is one page for the smoke fixture.
+- [x] Keep invalid time feedback adjacent to its input and verify partial values remain editable.
+- [x] Run tests against local real invitation/results/entry samples without persisting or displaying athlete data.
+- [x] Verify successive imports in separate actions, per-file deletion, reset to new meet, combined relay warning, inline invalid time, and single-page PDF with targeted tests.
 
 ## UI: athlete list and club search
 
@@ -36,5 +45,4 @@
 
 ## Backlog order
 
-1. Confirm the results-time period in the official KPP regulations.
-2. Resolve the classic-swimming discipline-label policy before implementing issue #5.
+1. None currently required for the finswimming workflow; classic swimming remains deferred unless a fork is requested.
