@@ -1393,19 +1393,18 @@ export default function App() {
           <div className="export-panel" id="export-section">
             <h3>{pl.export.heading}</h3>
             <p>{pl.export.help}</p>
-            <section className="submission-summary" aria-labelledby="submission-summary-heading">
+            <section className="submission-summary" id="submission-summary" aria-labelledby="submission-summary-heading">
               <div className="submission-summary-header">
                 <div>
                   <h4 id="submission-summary-heading">{pl.export.summaryHeading}</h4>
                   <p>{invitationState.meet.name} · {clubDetails.name || pl.export.clubName}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  disabled={submissionSummaryEntries.length === 0 && relayDrafts.length === 0}
+                <a
+                  className="secondary-action-button"
+                  href="#submission-summary"
                 >
-                  {pl.export.printSummary}
-                </button>
+                  {pl.export.summaryAction}
+                </a>
               </div>
               <p className="privacy-note">
                 {pl.export.summaryCount(submissionSummaryEntries.length, relayDrafts.length)}

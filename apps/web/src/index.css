@@ -975,6 +975,9 @@ hr {
 }
 
 .secondary-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.5rem;
   padding: 0.5rem 0.85rem;
   border: 1px solid #bfdbfe;
@@ -984,6 +987,7 @@ hr {
   font: inherit;
   font-weight: 650;
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 

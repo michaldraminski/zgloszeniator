@@ -45,7 +45,7 @@ export const pl = {
     generationFailed: 'Nie udało się wygenerować pliku',
     diagnosticLabel: 'Szczegóły diagnostyczne',
     summaryHeading: 'Podsumowanie zgłoszenia',
-    printSummary: 'Drukuj podsumowanie',
+    summaryAction: 'Podsumowanie',
     summaryCount: (entries: number, relays: number) => `Konkurencje indywidualne: ${entries} · Sztafety: ${relays}`,
     individualEntries: 'Zgłoszenia indywidualne',
     noIndividualEntries: 'Nie wybrano konkurencji indywidualnych.',

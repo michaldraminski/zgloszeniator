@@ -67,6 +67,8 @@ test('creates a submission and reuses it as history for the next meet', async ({
   await expect(page.locator('.time-field').getByText('Uzupełnij poprawnie minuty, sekundy i setne sekundy.')).toHaveCount(0);
 
   await page.getByLabel('Nazwa klubu').fill('Synthetic Club');
+  await page.getByRole('link', { name: 'Podsumowanie' }).click();
+  await expect(page).toHaveURL(/#submission-summary$/);
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByRole('region', { name: 'Podsumowanie zgłoszenia' })).toBeVisible();
   await expect(page.locator('.app-header')).not.toBeVisible();
