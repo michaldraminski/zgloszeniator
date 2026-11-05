@@ -79,6 +79,20 @@ describe('swim time input', () => {
     expect(formatSwimTime(6234)).toBe('01:02.34');
   });
 
+  it('treats omitted segmented parts as zero after any part is entered', () => {
+    expect(normalizeSwimTimeInput('01:')).toBe('01:00.00');
+    expect(normalizeSwimTimeInput('01:5')).toBe('01:05.00');
+    expect(normalizeSwimTimeInput('01:05.')).toBe('01:05.00');
+    expect(parseSwimTimeInput('01:')).toBe(6000);
+    expect(parseSwimTimeInput('01:5')).toBe(6500);
+    expect(normalizeSwimTimeInput('')).toBeNull();
+  });
+
+  it('rejects malformed colon-separated times immediately', () => {
+    expect(normalizeSwimTimeInput('06:5:20')).toBeNull();
+    expect(parseSwimTimeInput('06:5:20')).toBeNull();
+  });
+
   it('supports long durations without truncating minutes and rejects malformed fields', () => {
     expect(normalizeSwimTimeInput('754:56.78')).toBe('754:56.78');
     expect(normalizeSwimTimeInput('99:59:59.99')).toBe('5999:59.99');

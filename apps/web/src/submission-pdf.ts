@@ -29,6 +29,8 @@ export interface SubmissionPdfContent {
   noEntriesLabel: string;
   noRelaysLabel: string;
   footer: string;
+  openPdfLabel: string;
+  downloadPdfLabel: string;
   entries: SubmissionPdfEntry[];
   relays: SubmissionPdfRelay[];
 }
@@ -109,13 +111,30 @@ export function openSubmissionPdf(input: SubmissionPdfContent, popup: Window): P
       const pdf = createPdf(buildSubmissionPdfDefinition(input)) as unknown as CallbackPdfDocument;
       pdf.getBlob((blob) => {
         const url = URL.createObjectURL(blob);
+        const toolbar = popup.document.createElement('nav');
+        toolbar.setAttribute('aria-label', 'Opcje podsumowania PDF');
+        toolbar.style.cssText = 'box-sizing:border-box;display:flex;align-items:center;gap:16px;height:52px;padding:8px 14px;font:14px Arial,sans-serif;background:#f8fafc;border-bottom:1px solid #cbd5e1';
+
+        const openLink = popup.document.createElement('a');
+        openLink.href = url;
+        openLink.target = '_self';
+        openLink.textContent = input.openPdfLabel;
+
+        const downloadLink = popup.document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = 'podsumowanie-zgloszenia.pdf';
+        downloadLink.textContent = input.downloadPdfLabel;
+
+        toolbar.append(openLink, downloadLink);
         const frame = popup.document.createElement('iframe');
         frame.title = 'Podsumowanie PDF';
         frame.src = url;
-        frame.style.cssText = 'border:0;width:100%;height:100%;position:fixed;inset:0';
+        frame.style.cssText = 'border:0;width:100%;height:calc(100% - 52px);position:fixed;inset:52px 0 0';
         popup.document.title = input.heading;
         popup.document.body.style.margin = '0';
-        popup.document.body.append(frame);
+        popup.document.documentElement.style.height = '100%';
+        popup.document.body.style.height = '100%';
+        popup.document.body.append(toolbar, frame);
         resolve();
       });
     } catch (error) {

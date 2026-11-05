@@ -18,6 +18,17 @@ export function normalizeSwimTimeInput(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
+  const segmentedMatch = /^(\d{0,5}):(\d{0,2})(?:\.(\d{0,2}))?$/.exec(trimmed);
+  if (segmentedMatch && segmentedMatch.some((part, index) => index > 0 && part !== '')) {
+    const [, minutePart, secondPart, centisecondPart = ''] = segmentedMatch;
+    const minutes = Number(minutePart || 0);
+    const seconds = Number(secondPart || 0);
+    if (minutes > 5999 || seconds > 59) return null;
+    return formatSwimTime(
+      (minutes * 60 + seconds) * 100 + Number(centisecondPart.padEnd(2, '0') || 0),
+    );
+  }
+
   const legacyLenexMatch = /^(\d{1,2}):(\d{2}):(\d{2})\.(\d{2})$/.exec(trimmed);
   if (legacyLenexMatch) {
     const [, hourPart, minutePart, secondPart, centisecondPart] = legacyLenexMatch;

@@ -24,6 +24,7 @@
 - [x] Avoid duplicate relay-age warnings when one condition implies the other.
 - [x] Fix print CSS so hidden app sections do not create trailing blank PDF pages; verify the output is one page for the smoke fixture.
 - [x] Keep invalid time feedback adjacent to its input and verify partial values remain editable.
+- [x] Treat omitted time segments as zero after editing starts and report malformed non-empty times immediately.
 - [x] Run tests against local real invitation/results/entry samples without persisting or displaying athlete data.
 - [x] Verify successive imports in separate actions, per-file deletion, reset to new meet, combined relay warning, inline invalid time, and single-page PDF with targeted tests.
 
@@ -44,6 +45,7 @@
 ## UI polish: print/PDF action
 
 - [x] Restyle the print action to match the app's button treatment and mobile layout; print still focuses on the summary.
+- [x] Provide direct open/download links alongside the embedded PDF preview for mobile browsers without a working inline PDF viewer.
 
 ## Backlog order
 

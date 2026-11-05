@@ -26,6 +26,13 @@ test('creates a submission and reuses it as history for the next meet', async ({
   await selectFiles(page, 'Wybierz zaproszenie (.lxf lub .lef)', [invitationPath]);
   await expect(page.getByRole('heading', { name: 'Synthetic Meet' })).toBeVisible();
 
+  const relayMinutes = page.getByRole('textbox', { name: 'Minuty — 4x50m SF — Czas zgłoszenia', exact: true });
+  await relayMinutes.fill('1');
+  await expect(page.getByRole('textbox', { name: 'Sekundy — 4x50m SF — Czas zgłoszenia', exact: true })).toHaveValue('00');
+  await expect(page.getByRole('textbox', { name: 'Setne sekundy — 4x50m SF — Czas zgłoszenia', exact: true })).toHaveValue('00');
+  await expect(page.getByRole('button', { name: 'Zaokrąglij czas w górę / dodaj sekundę' }).last()).toBeEnabled();
+  await relayMinutes.fill('');
+
   await selectFiles(page, 'Dodaj zgłoszenie, wyniki lub zaproszenie', [previousEntryPath]);
   await expect(page.getByText('Wczytane pliki historyczne')).toBeVisible();
   await expect(page.getByText(/Poprzednie zgłoszenie — previous-entry\.lef/)).toBeVisible();
@@ -60,9 +67,11 @@ test('creates a submission and reuses it as history for the next meet', async ({
   await secondsInput.press('2');
   await expect(secondsInput).toHaveValue('29');
   await secondsInput.fill('77');
-  await expect(page.locator('.time-field').getByText('Uzupełnij poprawnie minuty, sekundy i setne sekundy.')).toBeVisible();
-  await secondsInput.fill('02');
+  await expect(page.locator('.time-field').getByText(/Niepoprawny format czasu/)).toBeVisible();
+  await centisecondsInput.fill('06:5:20');
+  await expect(page.locator('.time-field').getByText(/Niepoprawny format czasu/)).toBeVisible();
   await minutesInput.fill('1');
+  await secondsInput.fill('02');
   await centisecondsInput.fill('34');
   await expect(page.locator('.time-field').getByText('Uzupełnij poprawnie minuty, sekundy i setne sekundy.')).toHaveCount(0);
 
@@ -70,9 +79,12 @@ test('creates a submission and reuses it as history for the next meet', async ({
   const pdfPopupPromise = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'Podsumowanie' }).click();
   const pdfPage = await pdfPopupPromise;
+  await pdfPage.setViewportSize({ width: 390, height: 844 });
   const pdfFrame = pdfPage.getByTitle('Podsumowanie PDF');
   await expect(pdfFrame).toBeVisible();
   await expect.poll(() => pdfFrame.getAttribute('src')).toMatch(/^blob:/);
+  await expect(pdfPage.getByRole('link', { name: 'Otwórz PDF' })).toBeVisible();
+  await expect(pdfPage.getByRole('link', { name: 'Pobierz PDF' })).toBeVisible();
   expect(page.url()).not.toContain('#submission-summary');
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByRole('region', { name: 'Podsumowanie zgłoszenia' })).toBeVisible();

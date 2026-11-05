@@ -119,7 +119,7 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 - Some results files omit `SWIMSTYLE@name`. Import the invitation from those same meets to recover labels using event IDs scoped to exact meet identity; never map IDs across different meets or infer mappings from partial event schedules. Unresolved results stay out of time suggestions until a matching invitation is imported.
 - Default time policy: best valid result at the same `course` with a known date within the previous 12 months; results with no meet date remain preferred to previous-entry times because the age of those results cannot be verified. If no eligible result exists, use the most recent entry time. Check the actual period required by each meet's regulations.
 
-Coach-facing time inputs use `minutes:seconds.centiseconds` without an hours field, but preserve durations through 99:59:59.99 and convert to integer centiseconds internally. Export remains LENEX `hh:mm:ss.cc`.
+Coach-facing time inputs use `minutes:seconds.centiseconds` without an hours field, but preserve durations through 99:59:59.99 and convert to integer centiseconds internally. Once any segment is entered, omitted minute/second/centisecond segments mean `00`; an entirely empty time remains missing. A non-empty malformed or out-of-range value is reported inline immediately. Export remains LENEX `hh:mm:ss.cc`.
 
 ### Validation (blocking = cannot export, warning = can export)
 

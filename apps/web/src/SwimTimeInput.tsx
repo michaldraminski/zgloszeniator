@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react';
 
-import { splitSwimTimeInput } from './time-input';
+import { normalizeSwimTimeInput, splitSwimTimeInput } from './time-input';
 
 interface SwimTimeInputProps {
   value: string;
@@ -32,7 +32,15 @@ export function SwimTimeInput({
       onChange('');
       return;
     }
-    onChange(`${next.minutes}:${next.seconds}.${next.centiseconds}`);
+    onChange(`${next.minutes || '00'}:${next.seconds || '00'}.${next.centiseconds || '00'}`);
+  }
+
+  function handleSegmentChange(segment: TimeSegment, rawValue: string, maxLength: number): void {
+    if (/[:.]/.test(rawValue)) {
+      onChange(normalizeSwimTimeInput(rawValue) ?? rawValue);
+      return;
+    }
+    updateSegment(segment, rawValue.slice(0, maxLength));
   }
 
   function handleSegmentKeyDown(
@@ -92,7 +100,7 @@ export function SwimTimeInput({
           aria-label={`Minuty — ${disciplineLabel} — ${athleteLabel}`}
           value={segments.minutes}
           placeholder="00"
-          onChange={(event) => updateSegment('minutes', event.target.value.slice(0, 4))}
+          onChange={(event) => handleSegmentChange('minutes', event.target.value, 4)}
           onKeyDown={(event) => handleSegmentKeyDown(event, 'minutes', 4)}
           onKeyUp={(event) => handleKeyUp('minutes', event.currentTarget)}
         />
@@ -106,7 +114,7 @@ export function SwimTimeInput({
           aria-label={`Sekundy — ${disciplineLabel} — ${athleteLabel}`}
           value={segments.seconds}
           placeholder="00"
-          onChange={(event) => updateSegment('seconds', event.target.value.slice(0, 2))}
+          onChange={(event) => handleSegmentChange('seconds', event.target.value, 2)}
           onKeyDown={(event) => handleSegmentKeyDown(event, 'seconds', 2)}
           onKeyUp={(event) => handleKeyUp('seconds', event.currentTarget)}
         />
@@ -120,7 +128,7 @@ export function SwimTimeInput({
           aria-label={`Setne sekundy — ${disciplineLabel} — ${athleteLabel}`}
           value={segments.centiseconds}
           placeholder="00"
-          onChange={(event) => updateSegment('centiseconds', event.target.value.slice(0, 2))}
+          onChange={(event) => handleSegmentChange('centiseconds', event.target.value, 2)}
           onKeyDown={(event) => handleSegmentKeyDown(event, 'centiseconds', 2)}
           onKeyUp={(event) => handleKeyUp('centiseconds', event.currentTarget)}
         />

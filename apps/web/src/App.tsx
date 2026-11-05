@@ -33,7 +33,6 @@ import {
   displaySwimTimeInput,
   formatSwimTime,
   parseSwimTimeInput,
-  splitSwimTimeInput,
 } from './time-input';
 import {
   loadAppSnapshot,
@@ -407,6 +406,8 @@ export default function App() {
       noEntriesLabel: pl.export.noIndividualEntries,
       noRelaysLabel: pl.export.noRelays,
       footer: pl.export.pdfFooter,
+      openPdfLabel: pl.export.pdfOpenFallback,
+      downloadPdfLabel: pl.export.pdfDownloadFallback,
       entries,
       relays,
     };
@@ -1185,13 +1186,7 @@ export default function App() {
                             const value = editedValue === undefined
                               ? (option.suggestedTime ? formatSwimTime(option.suggestedTime.timeCs) : '')
                               : displaySwimTimeInput(editedValue);
-                            const timeSegments = splitSwimTimeInput(value);
-                            const completeTime = Boolean(
-                              timeSegments.minutes && timeSegments.seconds && timeSegments.centiseconds,
-                            );
-                            const invalidTime = (
-                              completeTime && parseSwimTimeInput(value) === null
-                            ) || Number(timeSegments.minutes) > 5999 || Number(timeSegments.seconds) > 59;
+                            const invalidTime = value.trim() !== '' && parseSwimTimeInput(value) === null;
 
                             return (
                               <div className="discipline-option" key={eventId}>
@@ -1318,10 +1313,17 @@ export default function App() {
                       <div className="time-field">
                         <SwimTimeInput
                           value={relayForm.time}
+                          invalid={relayForm.time.trim() !== '' && parseSwimTimeInput(relayForm.time) === null}
+                          errorId="relay-time-error"
                           athleteLabel={pl.relay.time}
                           disciplineLabel={selectedRelayChoice?.disciplineKey ?? pl.relay.heading}
                           onChange={(time) => setRelayForm((current) => ({ ...current, time }))}
                         />
+                        {relayForm.time.trim() !== '' && parseSwimTimeInput(relayForm.time) === null && (
+                          <small className="time-error" role="alert" id="relay-time-error">
+                            {pl.fileImport.invalidTime}
+                          </small>
+                        )}
                       </div>
                       <div className="time-adjustment-controls">
                         <button
