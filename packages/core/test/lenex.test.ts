@@ -95,6 +95,17 @@ describe('LENEX parsers', () => {
     expect(meet.events[1].disciplineKey).toBe('4x50m SF');
   });
 
+  it('accepts age groups without a name while preserving their age limits', () => {
+    const unnamedAgeGroupXml = invitationXml.replace(
+      '<AGEGROUP name="Junior" agemin="12" agemax="15" />',
+      '<AGEGROUP agemin="12" agemax="15" />',
+    );
+    const meet = parseInvitation(unnamedAgeGroupXml);
+
+    expect(meet.events[0].ageGroups).toEqual([{ name: '', min: 12, max: 15 }]);
+    expect(resolveEvent(meet, 'F', '50m SF', 14)?.eventId).toBe('event-1');
+  });
+
   it('parses entries using event references and keeps relay entries separate', () => {
     const parsed = parseEntryFile(entryXml);
 
