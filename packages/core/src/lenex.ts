@@ -289,7 +289,7 @@ function parseMeet(
       const ageGroups = (ageGroupsNode ? children(ageGroupsNode.AGEGROUP) : []).map((ageGroup) => {
         const maxValue = integerAttr(ageGroup, 'agemax', 'AGEGROUP', { defaultValue: -1 });
         return {
-          name: requiredAttr(ageGroup, 'name', 'AGEGROUP'),
+          name: attr(ageGroup, 'name') ?? '',
           min: integerAttr(ageGroup, 'agemin', 'AGEGROUP', { defaultValue: -1 }),
           max: maxValue < 0 ? null : maxValue,
         };
