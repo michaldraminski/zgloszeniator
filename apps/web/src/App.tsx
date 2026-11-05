@@ -1075,6 +1075,52 @@ export default function App() {
             </p>
           </div>
 
+          <div className="club-details-form">
+            <label>
+              <span>{pl.export.clubName}</span>
+              <input
+                required
+                value={clubDetails.name}
+                onChange={(event) => {
+                  setGeneratedDownload(null);
+                  setClubDetails((current) => ({ ...current, name: event.target.value }));
+                }}
+              />
+            </label>
+            <label>
+              <span>{pl.export.contactName}</span>
+              <input
+                value={clubDetails.contactName}
+                onChange={(event) => {
+                  setGeneratedDownload(null);
+                  setClubDetails((current) => ({ ...current, contactName: event.target.value }));
+                }}
+              />
+            </label>
+            <label>
+              <span>{pl.export.phone}</span>
+              <input
+                type="tel"
+                value={clubDetails.phone}
+                onChange={(event) => {
+                  setGeneratedDownload(null);
+                  setClubDetails((current) => ({ ...current, phone: event.target.value }));
+                }}
+              />
+            </label>
+            <label>
+              <span>{pl.export.email}</span>
+              <input
+                type="email"
+                value={clubDetails.email}
+                onChange={(event) => {
+                  setGeneratedDownload(null);
+                  setClubDetails((current) => ({ ...current, email: event.target.value }));
+                }}
+              />
+            </label>
+          </div>
+
           {rosterAthletes.length === 0 ? (
             <p>{pl.fileImport.noAthletes}</p>
           ) : (
@@ -1509,51 +1555,6 @@ export default function App() {
                 <p>{pl.export.noRelays}</p>
               )}
             </section>
-            <div className="club-details-form">
-              <label>
-                <span>{pl.export.clubName}</span>
-                <input
-                  required
-                  value={clubDetails.name}
-                  onChange={(event) => {
-                    setGeneratedDownload(null);
-                    setClubDetails((current) => ({ ...current, name: event.target.value }));
-                  }}
-                />
-              </label>
-              <label>
-                <span>{pl.export.contactName}</span>
-                <input
-                  value={clubDetails.contactName}
-                  onChange={(event) => {
-                    setGeneratedDownload(null);
-                    setClubDetails((current) => ({ ...current, contactName: event.target.value }));
-                  }}
-                />
-              </label>
-              <label>
-                <span>{pl.export.phone}</span>
-                <input
-                  type="tel"
-                  value={clubDetails.phone}
-                  onChange={(event) => {
-                    setGeneratedDownload(null);
-                    setClubDetails((current) => ({ ...current, phone: event.target.value }));
-                  }}
-                />
-              </label>
-              <label>
-                <span>{pl.export.email}</span>
-                <input
-                  type="email"
-                  value={clubDetails.email}
-                  onChange={(event) => {
-                    setGeneratedDownload(null);
-                    setClubDetails((current) => ({ ...current, email: event.target.value }));
-                  }}
-                />
-              </label>
-            </div>
             {generationError && (
               <div className="form-error" role="alert">
                 <p>{generationError}</p>
