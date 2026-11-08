@@ -184,15 +184,15 @@ function renderClub(draft: EntryFileDraft): string {
   );
   const athletesXml = draft.athletes.map((athlete, athleteIndex) => {
     const entriesXml = athlete.entries.map((entry) =>
-      `          <ENTRY eventid="${xmlAttribute(entry.eventId)}" entrytime="${formatTime(entry.timeCs)}" />`,
+      `        <ENTRY eventid="${xmlAttribute(entry.eventId)}" entrytime="${formatTime(entry.timeCs)}" />`,
     ).join('\r\n');
     const entriesXmlBlock = athlete.entries.length > 0
-      ? ['          <ENTRIES>', entriesXml, '          </ENTRIES>']
-      : ['          <ENTRIES />'];
+      ? ['       <ENTRIES>', entriesXml, '       </ENTRIES>']
+      : ['       <ENTRIES />'];
     return [
-      `        <ATHLETE lastname="${xmlAttribute(athlete.lastName.trim())}" firstname="${xmlAttribute(athlete.firstName.trim())}" birthdate="${athlete.birthYear}-01-01" gender="${athlete.gender}" athleteid="${athleteIndex + 1}">`,
+      `      <ATHLETE lastname="${xmlAttribute(athlete.lastName.trim())}" firstname="${xmlAttribute(athlete.firstName.trim())}" birthdate="${athlete.birthYear}-01-01" gender="${athlete.gender}" athleteid="${athleteIndex + 1}">`,
       ...entriesXmlBlock,
-      '        </ATHLETE>',
+      '      </ATHLETE>',
     ].join('\r\n');
   }).join('\r\n');
 
@@ -206,31 +206,31 @@ function renderClub(draft: EntryFileDraft): string {
       if (!athleteId) {
         throw new EntryFileGenerationError('Relay member is not in the roster');
       }
-      return `          <RELAYPOSITION number="${positionIndex + 1}" athleteid="${athleteId}" />`;
+      return `        <RELAYPOSITION number="${positionIndex + 1}" athleteid="${athleteId}" />`;
     }).join('\r\n');
     return [
-      `        <RELAY gender="${relay.gender}" number="${relay.number}" name="${xmlAttribute(relay.name.trim())}"${ageMin}${ageMax} relayid="${relayIndex + 1}">`,
-      '          <ENTRIES>',
-      `            <ENTRY eventid="${xmlAttribute(relay.eventId)}" entrytime="${formatTime(relay.timeCs)}" />`,
-      '          </ENTRIES>',
+      `      <RELAY gender="${relay.gender}" number="${relay.number}" name="${xmlAttribute(relay.name.trim())}"${ageMin}${ageMax} relayid="${relayIndex + 1}">`,
+      '       <ENTRIES>',
+      `        <ENTRY eventid="${xmlAttribute(relay.eventId)}" entrytime="${formatTime(relay.timeCs)}" />`,
+      '       </ENTRIES>',
       ...(memberAthleteKeys.length > 0
-        ? ['          <RELAYPOSITIONS>', positionsXml, '          </RELAYPOSITIONS>']
+        ? ['       <RELAYPOSITIONS>', positionsXml, '       </RELAYPOSITIONS>']
         : []),
-      '        </RELAY>',
+      '      </RELAY>',
     ].join('\r\n');
   }).join('\r\n');
 
   return [
-    '  <CLUBS>',
+    '   <CLUBS>',
     `    <CLUB name="${xmlAttribute(draft.club.name.trim())}">`,
-    `      <CONTACT name="${xmlAttribute(draft.club.contact.name.trim())}" phone="${xmlAttribute(draft.club.contact.phone.trim())}" email="${xmlAttribute(draft.club.contact.email.trim())}" />`,
-    '      <ATHLETES>',
+    `     <CONTACT name="${xmlAttribute(draft.club.contact.name.trim())}" phone="${xmlAttribute(draft.club.contact.phone.trim())}" email="${xmlAttribute(draft.club.contact.email.trim())}" />`,
+    '     <ATHLETES>',
     athletesXml,
-    '      </ATHLETES>',
-    relayList.length > 0 ? '      <RELAYS>' : '      <RELAYS />',
-    ...(relayList.length > 0 ? [relaysXml, '      </RELAYS>'] : []),
+    '     </ATHLETES>',
+    relayList.length > 0 ? '     <RELAYS>' : '     <RELAYS />',
+    ...(relayList.length > 0 ? [relaysXml, '     </RELAYS>'] : []),
     '    </CLUB>',
-    '  </CLUBS>',
+    '   </CLUBS>',
   ].join('\r\n');
 }
 
@@ -268,8 +268,15 @@ function prepareInvitationXml(invitationXml: string, clubXml: string): string {
   if (!meetsClose.test(xml)) {
     throw new EntryFileGenerationError('Invitation is missing the closing MEETS element');
   }
+  const meetClose = /^([ \t]*)<\/MEET\s*>/im;
+  if (!meetClose.test(xml)) {
+    throw new EntryFileGenerationError('Invitation is missing the closing MEET element');
+  }
+  xml = xml.replace(meetClose, (closingTag, indentation: string) =>
+    `${clubXml}\r\n${indentation}${closingTag.trimStart()}`,
+  );
   xml = xml.replace(meetsClose, (closingTag) =>
-    `${closingTag}\r\n${clubXml}\r\n  <CONSTRUCTOR name="Lenex Entries" version="0.1.0" />`,
+    `${closingTag}\r\n  <CONSTRUCTOR name="Lenex Entries" version="0.1.0" />`,
   );
 
   const xmlDeclaration = '<?xml version="1.0" encoding="Windows-1250"?>';

@@ -45,8 +45,10 @@ describe('buildEntryFile', () => {
     expect(xml).toMatch(/<LENEX[^>]*version="2\.0"/);
     expect(xml).toContain('<AGEGROUP name="Synthetic Junior" agemin="12" agemax="15" />');
     expect(xml).toContain('<CONSTRUCTOR name="Lenex Entries"');
-    expect(xml.indexOf('</MEETS>')).toBeLessThan(xml.indexOf('<CLUBS>'));
-    expect(xml.indexOf('<CLUBS>')).toBeLessThan(xml.indexOf('<CONSTRUCTOR'));
+    expect(xml.indexOf('</SESSIONS>')).toBeLessThan(xml.indexOf('<CLUBS>'));
+    expect(xml.indexOf('<CLUBS>')).toBeLessThan(xml.indexOf('</MEET>'));
+    expect(xml.indexOf('</MEET>')).toBeLessThan(xml.indexOf('</MEETS>'));
+    expect(xml.indexOf('</MEETS>')).toBeLessThan(xml.indexOf('<CONSTRUCTOR'));
     expect(parsed.clubs).toHaveLength(1);
     expect(parsed.clubs[0]).toMatchObject({
       name: sampleDraft.club.name,
