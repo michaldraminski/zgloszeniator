@@ -76,8 +76,8 @@ Derived from three real files of one meet (IV Runda KPP, Olecko, Oct 2026). Coun
 ### 3.3 Entry file (what Splash Entry Editor produces; the golden file)
 
 - Declares LENEX **2.0**, `encoding="Windows-1250"`, constructor `Splash ENTRY EDITOR 08.00.1343`. The `created` attribute is copied from the invitation. Indent 1 space, CRLF.
-- Structure: the **complete `MEET` of the invitation** plus
-  `CLUBS > CLUB(name) > CONTACT(name, phone, email), ATHLETES, RELAYS`. `CONSTRUCTOR` comes after `MEETS`.
+- Structure: the **complete `MEET` of the invitation**, with
+  `CLUBS > CLUB(name) > CONTACT(name, phone, email), ATHLETES, RELAYS` nested inside `MEET` after `SESSIONS`. `CONSTRUCTOR` comes after `MEETS`.
 - `ATHLETE`: `lastname`, `firstname`, `birthdate`, `gender`, `athleteid`.
   - `birthdate` is `YYYY-01-01`, so **only the year is meaningful**.
   - `athleteid` is a local counter starting at 1. There is no licence number, no nation.
@@ -228,7 +228,7 @@ buildEntryFile(meet: Meet, draft: Draft, roster: Athlete[]): Uint8Array      // 
 ### Generating the entry file
 
 1. Parse the invitation XML (`preserveOrder`), find `MEETS > MEET`.
-2. Append `CLUBS > CLUB(name)` with `CONTACT`, `ATHLETES` (`athleteid` = 1..n, `birthdate` = `${year}-01-01`) and `RELAYS`.
+2. Append `CLUBS > CLUB(name)` inside `MEET`, after `SESSIONS`, with `CONTACT`, `ATHLETES` (`athleteid` = 1..n, `birthdate` = `${year}-01-01`) and `RELAYS`.
 3. Set `LENEX@version="2.0"`. Replace `CONSTRUCTOR` with the project's own (never impersonate Splash). Move it after `MEETS`.
 4. Serialize with 1-space indent and CRLF. Use ` />` for empty tags.
 5. Escape `& < > "` in values. Replace characters not present in Windows-1250 with `&#N;`.
